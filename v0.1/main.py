@@ -1,24 +1,33 @@
 import sys
 
 def main(args):
-    print(args)
-    numAnterior = args[0]
-    numPost = 0
-    soma = '+'
-    sub = '-'
-    result = 0
+    listaNumeros = []
+    listaOperacao = []
+    numero = ''
 
-    for i in range(len(args)):
-        if args[i] == soma:
-            numPost = args[i+1]
-            result += int(numAnterior) + int(numPost)
-        elif args[i] == sub:
-            numPost = args[i+1]
-            result += int(numAnterior) - int(numPost)
-        numAnterior = numPost
-    return result
-    
+    for i in args:
+        if i != '+' and i != '-':
+            numero += i
+        elif i == '+' or i == '-':
+            listaNumeros.append(int(numero))
+            listaOperacao.append(i)
+            numero = ''  
 
+    listaNumeros.append(int(numero))
+    # print (listaNumeros)
+
+
+    resultado = 0
+    for i in range(len(listaNumeros)):
+        if i == 0:
+            resultado = listaNumeros[i]
+        else:
+            if listaOperacao[i-1] == '+':
+                resultado += listaNumeros[i]
+            else:
+                resultado -= listaNumeros[i]
+
+    return resultado
 
 
 if __name__ == "__main__":
