@@ -1,33 +1,75 @@
 import sys
 
-def main(args):
-    listaNumeros = []
-    listaOperacao = []
-    numero = ''
 
-    for i in args:
-        if i != '+' and i != '-':
-            numero += i
-        elif i == '+' or i == '-':
-            listaNumeros.append(int(numero))
-            listaOperacao.append(i)
-            numero = ''  
+class Token():
+    def __init__(self, type, value):
+        self.type = type                                    #tipo do token
+        self.value = value                                  #valor do token
 
-    listaNumeros.append(int(numero))
-    # print (listaNumeros)
+class Tokenizer():
+    def __init__(self, source):
+        self.source = source                                #código fonte a ser tokenizado
+        self.position = 0                                   #posição atual que o tokenizador está
+        self.next = None                                    #ultimo token separado
 
+    def selectNext(self):
+        while self.position < len(self.source) and self.source[self.position] == " ":
+            self.position += 1
 
-    resultado = 0
-    for i in range(len(listaNumeros)):
-        if i == 0:
-            resultado = listaNumeros[i]
+        if self.position < len(self.source):
+            if self.source[self.position] == "+":
+                self.next = Token("PLUS", "+")
+                self.position += 1
+            elif self.source[self.position] == "-":
+                self.next = Token("MINUS", "-")
+                self.position += 1
+            elif self.source[self.position].isdigit():
+                number = ""
+                while self.position < len(self.source) and self.source[self.position].isdigit():
+                    number += self.source[self.position]
+                    self.position += 1
+                self.next = Token("NUMBER", int(number))
+            return self.next
         else:
-            if listaOperacao[i-1] == '+':
-                resultado += listaNumeros[i]
-            else:
-                resultado -= listaNumeros[i]
+            return Token("EOF", "")
+        
+class Parser():
+    def __init__(self, tokenizer):
+        self.tokenizer = tokenizer        
+    
+    def parseExpression(self):
+        self.tokenizer.selectNext()
+        
+        if self.tokenizer.next.type == "NUMBER":
+            result = self.tokenizer.next.value
+            self.tokenizer.selectNext()
+            while self.tokenizer.next.type == "PLUS" or self.tokenizer.next.type == "MINUS":
+                if self.tokenizer.next.type == "PLUS":
+                    self.tokenizer.selectNext()
+                    if self.tokenizer.next.type == "NUMBER":
+                        result += self.tokenizer.next.value
+                    else:
+                        return "Error"
+                elif self.tokenizer.next.type == "MINUS":
+                    self.tokenizer.selectNext()
+                    if self.tokenizer.next.type == "NUMBER":
+                        result -= self.tokenizer.next.value
+                    else:
+                        return "Error"
+                self.tokenizer.selectNext()
+            return result
+        else:
+            return "Error"
 
-    return resultado
+    def run(code):
+        tokenizer = Tokenizer(code)
+        parser = Parser(tokenizer)
+        return parser.parseExpression()
+
+
+
+def main(code):
+    return Parser.run(code)
 
 
 if __name__ == "__main__":
