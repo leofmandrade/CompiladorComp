@@ -49,17 +49,20 @@ class Parser():
                     if self.tokenizer.next.type == "NUMBER":
                         result += self.tokenizer.next.value
                     else:
-                        return "Error"
+                        sys.stderr.write("Error: Expected a number after '+'\n")
+                        sys.exit(1)
                 elif self.tokenizer.next.type == "MINUS":
                     self.tokenizer.selectNext()
                     if self.tokenizer.next.type == "NUMBER":
                         result -= self.tokenizer.next.value
                     else:
-                        return "Error"
+                        sys.stderr.write("Error: Expected a number after '-'\n")
+                        sys.exit(1)
                 self.tokenizer.selectNext()
             return result
         else:
-            return "Error"
+            sys.stderr.write("Error: Expected a number at the beginning\n")
+            sys.exit(1)
 
     def run(code):
         tokenizer = Tokenizer(code)
