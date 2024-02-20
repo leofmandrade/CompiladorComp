@@ -29,9 +29,11 @@ class Tokenizer():
                     number += self.source[self.position]
                     self.position += 1
                 self.next = Token("NUMBER", int(number))
+
             return self.next
         else:
             return Token("EOF", "")
+
         
 class Parser():
     def __init__(self, tokenizer):
