@@ -33,7 +33,6 @@ class Tokenizer():
                     self.position += 1
                 self.next = Token("NUMBER", int(number))
 
-            print("Valor do token: ", self.next.value)
             return self.next
         else:
             return Token("EOF", "")
