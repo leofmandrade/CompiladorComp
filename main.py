@@ -7,17 +7,20 @@ class Token():
         self.value = value                                  #valor do token
 
 class Tokenizer():
-    def __init__(self, source):
+    def __init__(self, source, position, next):
         self.source = source                                #código fonte a ser tokenizado
-        self.position = 0                                   #posição atual que o tokenizador está
-        self.next = None                                    #ultimo token separado
+        self.position = position                                   #posição atual que o tokenizador está
+        self.next = next                                    #ultimo token separado
 
     def selectNext(self):
         while self.position < len(self.source) and self.source[self.position] == " ":
             self.position += 1
 
         if self.position < len(self.source):
-            if self.source[self.position] == "+":
+            if self.source[self.position] == " ":
+                self.position += 1
+                self.selectNext()
+            elif self.source[self.position] == "+":
                 self.next = Token("PLUS", "+")
                 self.position += 1
             elif self.source[self.position] == "-":
@@ -30,6 +33,7 @@ class Tokenizer():
                     self.position += 1
                 self.next = Token("NUMBER", int(number))
 
+            print("Valor do token: ", self.next.value)
             return self.next
         else:
             return Token("EOF", "")
@@ -45,6 +49,10 @@ class Parser():
         if self.tokenizer.next.type == "NUMBER":
             result = self.tokenizer.next.value
             self.tokenizer.selectNext()
+            
+            if self.tokenizer.next.type == "NUMBER":
+                sys.stderr.write("Error: Expected an operator between numbers\n")
+                sys.exit(1)
             while self.tokenizer.next.type == "PLUS" or self.tokenizer.next.type == "MINUS":
                 if self.tokenizer.next.type == "PLUS":
                     self.tokenizer.selectNext()
@@ -62,12 +70,15 @@ class Parser():
                         sys.exit(1)
                 self.tokenizer.selectNext()
             return result
+        
+
+        
         else:
             sys.stderr.write("Error: Expected a number at the beginning\n")
             sys.exit(1)
 
     def run(code):
-        tokenizer = Tokenizer(code)
+        tokenizer = Tokenizer(code, 0, None)
         parser = Parser(tokenizer)
         return parser.parseExpression()
 
