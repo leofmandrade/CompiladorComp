@@ -47,7 +47,7 @@ class Parser():
     
     def parseTerm(self):
         self.tokenizer.selectNext()
-        print ("AAAA: ", self.tokenizer.next.type)
+        # print ("AAAA: ", self.tokenizer.next.type)
         if self.tokenizer.next.type == "NUMBER":
             result = self.tokenizer.next.value
             self.tokenizer.selectNext()
@@ -79,20 +79,23 @@ class Parser():
 
     def parseExpression(self):
         result = self.parseTerm()
-        print ("Result: ", result)
-        print ("Next: ", self.tokenizer.next.type)
+        # print ("Result: ", result)
+        # print ("Next: ", self.tokenizer.next.type)
 
         while self.tokenizer.next.type == "PLUS" or self.tokenizer.next.type == "MINUS":
             if self.tokenizer.next.type == "PLUS":
-                print ("BB: ", self.tokenizer.next.type)
+                # print ("BB: ", self.tokenizer.next.type)
                 result += self.parseTerm()
             elif self.tokenizer.next.type == "MINUS":
-                print ("BB: ", self.tokenizer.next.type)
-                result -= self.parseTerm()
-            a = self.tokenizer.selectNext()
-            print ("Next: ", a.type)
+                self.tokenizer.selectNext()  # Avança para o próximo token após o sinal de subtração
+                if self.tokenizer.next.type == "NUMBER":
+                    result -= self.tokenizer.next.value  # Considera o número como negativo
+                else:
+                    sys.stderr.write("Error: Expected a number after '-'\n")
+                    sys.exit(1)
+                self.tokenizer.selectNext()  # Avança para o próximo token após o número negativo
 
-        print ("Resultado: ", result)
+        # print ("Resultado: ", result)
         
         return result
     
