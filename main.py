@@ -97,7 +97,7 @@ class Parser():
 
         # print ("Resultado: ", result)
         
-        return result
+        return int(result)
     
 
     def run(code):
