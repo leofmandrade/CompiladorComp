@@ -89,7 +89,7 @@ class Parser():
                 sys.stderr.write("Error: Expected '+' or '-'\n")
                 sys.exit(1)
 
-        return result
+        return int(result)
     
 
     def run(code):
