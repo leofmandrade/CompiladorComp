@@ -17,7 +17,13 @@ class Tokenizer():
             self.position += 1
 
         if self.position < len(self.source):
-            if self.source[self.position] == "*":
+            if self.source[self.position] == "(":
+                self.next = Token("LPAREN", "(")
+                self.position += 1
+            elif self.source[self.position] == ")":
+                self.next = Token("RPAREN", ")")
+                self.position += 1
+            elif self.source[self.position] == "*":
                 self.next = Token("TIMES", "*")
                 self.position += 1
             elif self.source[self.position] == "/":
@@ -45,40 +51,43 @@ class Parser():
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer        
     
-    def parseTerm(self):
-        self.tokenizer.selectNext()
-        # print ("AAAA: ", self.tokenizer.next.type)
-        if self.tokenizer.next.type == "NUMBER":
-            result = self.tokenizer.next.value
-            self.tokenizer.selectNext()
+    # def parseTerm(self):
+    #     self.tokenizer.selectNext()
+    #     # print ("AAAA: ", self.tokenizer.next.type)
+    #     if self.tokenizer.next.type == "NUMBER":
+    #         result = self.tokenizer.next.value
+    #         self.tokenizer.selectNext()
             
-            if self.tokenizer.next.type == "NUMBER":
-                sys.stderr.write("Error: Expected an operator between numbers\n")
-                sys.exit(1)
-            while self.tokenizer.next.type == "TIMES" or self.tokenizer.next.type == "DIVIDE":
-                if self.tokenizer.next.type == "TIMES":
-                    self.tokenizer.selectNext()
-                    if self.tokenizer.next.type == "NUMBER":
-                        result *= self.tokenizer.next.value
-                    else:
-                        sys.stderr.write("Error: Expected a number after '+'\n")
-                        sys.exit(1)
-                elif self.tokenizer.next.type == "DIVIDE":
-                    self.tokenizer.selectNext()
-                    if self.tokenizer.next.type == "NUMBER":
-                        result /= self.tokenizer.next.value
-                    else:
-                        sys.stderr.write("Error: Expected a number after '-'\n")
-                        sys.exit(1)
-                self.tokenizer.selectNext()
-            return result
-        else:
-            sys.stderr.write("Error: Expected a number at the beginning\n")
-            sys.exit(1)
+    #         if self.tokenizer.next.type == "NUMBER":
+    #             sys.stderr.write("Error: Expected an operator between numbers\n")
+    #             sys.exit(1)
+    #         while self.tokenizer.next.type == "TIMES" or self.tokenizer.next.type == "DIVIDE":
+    #             if self.tokenizer.next.type == "TIMES":
+    #                 self.tokenizer.selectNext()
+    #                 if self.tokenizer.next.type == "NUMBER":
+    #                     result *= self.tokenizer.next.value
+    #                 else:
+    #                     sys.stderr.write("Error: Expected a number after '+'\n")
+    #                     sys.exit(1)
+    #             elif self.tokenizer.next.type == "DIVIDE":
+    #                 self.tokenizer.selectNext()
+    #                 if self.tokenizer.next.type == "NUMBER":
+    #                     result /= self.tokenizer.next.value
+    #                 else:
+    #                     sys.stderr.write("Error: Expected a number after '-'\n")
+    #                     sys.exit(1)
+    #             self.tokenizer.selectNext()
+    #         return result
+    #     else:
+    #         sys.stderr.write("Error: Expected a number at the beginning\n")
+    #         sys.exit(1)
 
 
     def parseExpression(self):
+        print ("ENTROU NO PARSEEXPRESSION")
         result = self.parseTerm()
+        print ("PARSEEXPRESSION: ", self.tokenizer.next.type)
+
 
         while self.tokenizer.next.type == "PLUS" or self.tokenizer.next.type == "MINUS":
             if self.tokenizer.next.type == "PLUS":
@@ -91,6 +100,51 @@ class Parser():
 
         return int(result)
     
+
+    def parseTerm(self):
+        print ("ENTROU NO PARSETERM")
+        result = self.parseFactor()
+        print ("PARSETERM: ", self.tokenizer.next.type)
+
+
+        while self.tokenizer.next.type == "TIMES" or self.tokenizer.next.type == "DIVIDE":
+            if self.tokenizer.next.type == "TIMES":
+                result *= self.parseFactor()
+            elif self.tokenizer.next.type == "DIVIDE":
+                result /= self.parseFactor()
+            else:
+                sys.stderr.write("Error: Expected '*' or '/'\n")
+                sys.exit(1)
+
+        return int(result)
+    
+
+    def parseFactor(self):
+        print ("ENTROU NO PARSEFACTOR")
+        self.tokenizer.selectNext()
+        print ("PARSEFACTOR: ", self.tokenizer.next.type)
+
+        
+        if self.tokenizer.next.type == "NUMBER":
+            result = self.tokenizer.next.value
+        elif self.tokenizer.next.type == "PLUS":
+            result = self.parseFactor()
+        elif self.tokenizer.next.type == "MINUS":
+            result = -self.parseFactor()
+        elif self.tokenizer.next.type == "LPAREN":
+            result = self.parseExpression()
+            if self.tokenizer.next.type != "RPAREN":
+                sys.stderr.write("Error: Expected ')'\n")
+                sys.exit(1)
+        else:
+            sys.stderr.write("Error: Expected a number, '+', '-' or '('\n")
+            sys.exit(1)
+        
+        self.tokenizer.selectNext()
+        print ("PROXIMO: ", self.tokenizer.next.type)
+        return int(result)
+
+    @staticmethod
 
     def run(code):
         tokenizer = Tokenizer(code, 0, None)
