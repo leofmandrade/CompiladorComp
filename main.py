@@ -86,7 +86,7 @@ class Parser():
     def parseExpression(self):
         print ("ENTROU NO PARSEEXPRESSION")
         result = self.parseTerm()
-        print ("PARSEEXPRESSION: ", self.tokenizer.next.type)
+        print ("PARSEEXPRESSION: ", self.tokenizer.next.value)
 
 
         while self.tokenizer.next.type == "PLUS" or self.tokenizer.next.type == "MINUS":
@@ -104,7 +104,7 @@ class Parser():
     def parseTerm(self):
         print ("ENTROU NO PARSETERM")
         result = self.parseFactor()
-        print ("PARSETERM: ", self.tokenizer.next.type)
+        print ("PARSETERM: ", self.tokenizer.next.value)
 
 
         while self.tokenizer.next.type == "TIMES" or self.tokenizer.next.type == "DIVIDE":
@@ -122,7 +122,7 @@ class Parser():
     def parseFactor(self):
         print ("ENTROU NO PARSEFACTOR")
         self.tokenizer.selectNext()
-        print ("PARSEFACTOR: ", self.tokenizer.next.type)
+        print ("PARSEFACTOR: ", self.tokenizer.next.value)
 
         
         if self.tokenizer.next.type == "NUMBER":
