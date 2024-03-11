@@ -127,7 +127,7 @@ class Parser:
             sys.stderr.write("Error: Expected number or '('")
             sys.exit(1)
 
-    @staticmethod
+
     def run(code):
         tokenizer = Tokenizer(code, 0)
         parser = Parser(tokenizer)
