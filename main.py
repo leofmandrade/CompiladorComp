@@ -19,39 +19,38 @@ class Tokenizer:
         while self.position < len(self.source) and self.source[self.position] == " ":
             self.position += 1
         
-        if self.position == len(self.source):
-            # Se atingir o final da entrada, retorna um token de fim de arquivo (EOF)
+        if self.position == len(self.source):       # se atingir o final da entrada, retorna um token de fim de arquivo (EOF)
             self.next = Token("EOF", "EOF")
 
         elif self.source[self.position] == "(":
-            self.next = Token("LPAREN", self.source[self.position])
+            self.next = Token("LPAREN", "(")
             self.position += 1
         elif self.source[self.position] == ")":
-            self.next = Token("RPAREN", self.source[self.position])
+            self.next = Token("RPAREN", ")")
             self.position += 1
         elif self.source[self.position] == "+":
-            self.next = Token("PLUS", self.source[self.position])
+            self.next = Token("PLUS", "+")
             self.position += 1
         elif self.source[self.position] == "-":
-            self.next = Token("MINUS", self.source[self.position])
+            self.next = Token("MINUS","-")
             self.position += 1
         elif self.source[self.position] == "*":
-            self.next = Token("TIMES", self.source[self.position])
+            self.next = Token("TIMES", "*")
             self.position += 1
         elif self.source[self.position] == "/":
-            self.next = Token("DIVIDE", self.source[self.position])
+            self.next = Token("DIVIDE", "/")
             self.position += 1
 
 
-        elif self.source[self.position].isdigit():
-            # Tokeniza número
+        elif self.source[self.position].isdigit():      #tokeniza número
             number = ""
             while self.position < len(self.source) and self.source[self.position].isdigit():
                 number += self.source[self.position]
                 self.position += 1
             self.next = Token("NUMBER", int(number))
-        elif self.source[self.position] == " ":
-            # Ignora espaços em branco e chama recursivamente selectNext()
+            
+        
+        elif self.source[self.position] == " ":         #ignora espaços em branco e chama recursivamente selectNext()
             self.position += 1
             self.selectNext()
         else:
@@ -72,9 +71,9 @@ class Parser:
         while operation.type == "PLUS" or operation.type == "MINUS":
             self.tokenizer.selectNext()
             if operation.type == "PLUS":
-                result = result + self.parseTerm()
+                result += self.parseTerm()
             elif operation.type == "MINUS":
-                result = result - self.parseTerm()
+                result -= self.parseTerm()
             operation = self.tokenizer.next
             if operation.type == "NUMBER":
                 sys.stderr.write("Error: Expected '+' or '-'\n")
@@ -88,36 +87,31 @@ class Parser:
         while operation.type == "TIMES" or operation.type == "DIVIDE":
             self.tokenizer.selectNext()
             if operation.type == "TIMES":
-                result = result * self.parseFactor()
+                result *= self.parseFactor()
                 operation = self.tokenizer.next
             elif operation.type == "DIVIDE":
-                result = result // self.parseFactor()
+                result //= self.parseFactor()
                 operation = self.tokenizer.next
         return result
 
     def parseFactor(self):
         operation = self.tokenizer.next
-        if operation.type == "NUMBER":
-            # Se for número, avança pro próximo token e retorna o valor do número
+        if operation.type == "NUMBER":      #se for número, avança pro próximo token e retorna o valor do número
             self.tokenizer.selectNext()
             return operation.value
         
-        elif operation.type == "PLUS":
-            # Se for adição, avança pro próximo token e chama parseFactor()
+        elif operation.type == "PLUS":      #se for adição, avança pro próximo token e chama parseFactor()
             self.tokenizer.selectNext()
             return self.parseFactor()
         
-        elif operation.type == "MINUS":
-            # Se for subtração, avança pro próximo token e chama parseFactor()
+        elif operation.type == "MINUS":     #se for subtração, avança pro próximo token e chama parseFactor()
             self.tokenizer.selectNext()
             return -self.parseFactor()
         
-        elif operation.type == "LPAREN":
-            # Se for ( avança pro próximo token e chama parseExpression()
+        elif operation.type == "LPAREN":    #se for ( avança pro próximo token e chama parseExpression()
             self.tokenizer.selectNext()
             result = self.parseExpression()
-            if self.tokenizer.next.type == "RPAREN":
-                # Se for ) avança para o próximo token
+            if self.tokenizer.next.type == "RPAREN":    #se for ) avança para o próximo token
                 self.tokenizer.selectNext()
                 return result
             else:
@@ -132,8 +126,7 @@ class Parser:
         tokenizer = Tokenizer(code, 0)
         parser = Parser(tokenizer)
         result = parser.parseExpression()
-        if tokenizer.next.type != "EOF":
-            # Exibe erro se houverem caracteres não consumidos após a análise
+        if tokenizer.next.type != "EOF":        #exibe erro se houverem caracteres não consumidos após a análise
             sys.stderr.write("Error: Unexpected character\n")
             sys.exit(1)
         return result
