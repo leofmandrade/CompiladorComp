@@ -1,15 +1,65 @@
+from abc import abstractmethod
 import sys
 
 # representa um token com um tipo e um valor
-class Token:
+class Token():
     def __init__(self, type, value):
         self.type = type  
         self.value = value 
 
 
+# classe que filtra comentarios
+class PrePro():
+    def filter(self, source):
+        # se tiver "--", ignora tudo o que vem depois
+        codigo = source.split("--")[0]
+        return codigo
+
+class Node():
+    def __init__(self, value):
+        self.value = value
+        self.children = []
+
+    @abstractmethod
+    def Evaluate():
+        pass
+
+
+class BinOp(Node):
+    def Evaluate(self):
+        valor = self.value
+        if valor == "+":
+            return self.children[0].Evaluate() + self.children[1].Evaluate()
+        elif valor == "-":
+            return self.children[0].Evaluate() - self.children[1].Evaluate()
+        elif valor == "*":
+            return self.children[0].Evaluate() * self.children[1].Evaluate()
+        elif valor == "/":
+            return self.children[0].Evaluate() // self.children[1].Evaluate()
+        
+class UnOp(Node):
+    def Evaluate(self):
+        valor = self.value
+        if valor == "+":
+            return +self.children[0].Evaluate()
+        elif valor == "-":
+            return -self.children[0].Evaluate()
+        
+class IntVal(Node):
+    def Evaluate(self):
+        valor = self.value
+
+        return int(valor)
+    
+class NoOp(Node):
+    def Evaluate(self):
+        pass
+
+
+
 
 # converte uma sequência de caracteres em tokens
-class Tokenizer:
+class Tokenizer():
     def __init__(self, source, position):
         self.source = source
         self.position = position
@@ -60,7 +110,7 @@ class Tokenizer:
 
 
 # análise sintática da expressão
-class Parser:
+class Parser():
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
 
@@ -123,6 +173,8 @@ class Parser:
 
 
     def run(code):
+        prepro = PrePro()
+        code = prepro.filter(code)
         tokenizer = Tokenizer(code, 0)
         parser = Parser(tokenizer)
         result = parser.parseExpression()
@@ -135,5 +187,8 @@ def main(code):
     return Parser.run(code)
 
 if __name__ == "__main__":
-    args = sys.argv[1:]
-    print(main(args[0]))
+    # entrada é o arquivo "entrada.lua" contando que tem apenas 1 linha, sem \n
+    entrada = open("entrada.lua", "r").read()
+    print(main(entrada))
+
+
