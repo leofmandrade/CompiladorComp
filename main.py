@@ -198,15 +198,20 @@ class Parser():
         code = prepro.filter(code)
         tokenizer = Tokenizer(code, 0)
         parser = Parser(tokenizer)
-        return parser.parseExpression()
-    
+        result = parser.parseExpression()
+        if tokenizer.next.type != "EOF":
+            sys.stderr.write("Error: Unexpected character\n")
+            sys.exit(1)
+        return result
+
 
 def main(code):
     root_node = Parser.run(code)
     return root_node.Evaluate()
 
 if __name__ == "__main__":
-    # entrada é o arquivo "entrada.lua" contando que tem apenas 1 linha, sem \n
-    entrada = open("entrada.lua", "r").read()
-    print(main(entrada))
-
+    # entrada é "main.py [arquivo]" 
+    file = open(sys.argv[1], "r")
+    code = file.read()
+    file.close()
+    print(main(code))
