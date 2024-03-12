@@ -1,5 +1,6 @@
 from abc import abstractmethod
 import sys
+import re
 
 # representa um token com um tipo e um valor
 class Token():
@@ -11,9 +12,10 @@ class Token():
 # classe que filtra comentarios
 class PrePro():
     def filter(self, source):
-        # se tiver "--", ignora tudo o que vem depois
-        codigo = source.split("--")[0]
-        return codigo
+        source = re.sub(r"--.*", "", source)    # tira tudo que vem à direita de "--"
+        source = re.sub(r"\n", "", source)      # tira quebra de linha e substitui por nada
+        return source
+        
 
 class Node():
     def __init__(self, value):
@@ -25,36 +27,45 @@ class Node():
         pass
 
 
+# binary operation (addition, subtraction, multiplication, division)
 class BinOp(Node):
     def Evaluate(self):
         valor = self.value
+        child1 = self.children[0].Evaluate()
+        child2 = self.children[1].Evaluate()
+
         if valor == "+":
-            return self.children[0].Evaluate() + self.children[1].Evaluate()
+            return child1 + child2
         elif valor == "-":
-            return self.children[0].Evaluate() - self.children[1].Evaluate()
+            return child1 - child2
         elif valor == "*":
-            return self.children[0].Evaluate() * self.children[1].Evaluate()
+            return child1 * child2
         elif valor == "/":
-            return self.children[0].Evaluate() // self.children[1].Evaluate()
+            return child1 // child2
         
+
+# unary operation (positive, negative)
 class UnOp(Node):
     def Evaluate(self):
         valor = self.value
+        child = self.children[0].Evaluate()
+
         if valor == "+":
-            return +self.children[0].Evaluate()
+            return +child
         elif valor == "-":
-            return -self.children[0].Evaluate()
+            return -child
         
+        
+# integer value
 class IntVal(Node):
     def Evaluate(self):
         valor = self.value
-
         return int(valor)
     
+# no operation
 class NoOp(Node):
     def Evaluate(self):
         pass
-
 
 
 
@@ -116,47 +127,57 @@ class Parser():
 
     def parseExpression(self):
         result = self.parseTerm()
-        operation = self.tokenizer.next
         
-        while operation.type == "PLUS" or operation.type == "MINUS":
+        while self.tokenizer.next.type == "PLUS" or self.tokenizer.next.type == "MINUS":
+            operation = self.tokenizer.next
+
             self.tokenizer.selectNext()
             if operation.type == "PLUS":
-                result += self.parseTerm()
+                node = BinOp("+")
             elif operation.type == "MINUS":
-                result -= self.parseTerm()
-            operation = self.tokenizer.next
-            if operation.type == "NUMBER":
-                sys.stderr.write("Error: Expected '+' or '-'\n")
-                sys.exit(1)
+                node = BinOp("-")
+            node.children.append(result)
+            node.children.append(self.parseTerm())
+            result = node
+
         return result
+
+
 
     def parseTerm(self):
         result = self.parseFactor()
-        operation = self.tokenizer.next
 
-        while operation.type == "TIMES" or operation.type == "DIVIDE":
+        while self.tokenizer.next.type == "TIMES" or self.tokenizer.next.type == "DIVIDE":
+            operation = self.tokenizer.next
+
             self.tokenizer.selectNext()
             if operation.type == "TIMES":
-                result *= self.parseFactor()
+                node = BinOp("*")
                 operation = self.tokenizer.next
             elif operation.type == "DIVIDE":
-                result //= self.parseFactor()
-                operation = self.tokenizer.next
+                node = BinOp("/")
+            node.children.append(result)
+            node.children.append(self.parseFactor())
+            result = node
         return result
 
     def parseFactor(self):
         operation = self.tokenizer.next
         if operation.type == "NUMBER":      #se for número, avança pro próximo token e retorna o valor do número
             self.tokenizer.selectNext()
-            return operation.value
+            return IntVal(operation.value)
         
         elif operation.type == "PLUS":      #se for adição, avança pro próximo token e chama parseFactor()
             self.tokenizer.selectNext()
-            return self.parseFactor()
-        
+            node = UnOp("+")
+            node.children.append(self.parseFactor())
+            return node
+                
         elif operation.type == "MINUS":     #se for subtração, avança pro próximo token e chama parseFactor()
             self.tokenizer.selectNext()
-            return -self.parseFactor()
+            node = UnOp("-")
+            node.children.append(self.parseFactor())
+            return node
         
         elif operation.type == "LPAREN":    #se for ( avança pro próximo token e chama parseExpression()
             self.tokenizer.selectNext()
@@ -177,18 +198,15 @@ class Parser():
         code = prepro.filter(code)
         tokenizer = Tokenizer(code, 0)
         parser = Parser(tokenizer)
-        result = parser.parseExpression()
-        if tokenizer.next.type != "EOF":        #exibe erro se houverem caracteres não consumidos após a análise
-            sys.stderr.write("Error: Unexpected character\n")
-            sys.exit(1)
-        return result
+        return parser.parseExpression()
+    
 
 def main(code):
-    return Parser.run(code)
+    root_node = Parser.run(code)
+    return root_node.Evaluate()
 
 if __name__ == "__main__":
     # entrada é o arquivo "entrada.lua" contando que tem apenas 1 linha, sem \n
     entrada = open("entrada.lua", "r").read()
     print(main(entrada))
-
 
