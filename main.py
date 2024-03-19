@@ -24,6 +24,7 @@ class SymbolTable():
 
     def set(self, key, value):
         self.table[key] = value
+        
 TabelaSimbolos = SymbolTable()
 
 
@@ -33,6 +34,7 @@ class Token():
         self.type = type  
         self.value = value 
 
+
 # classe que filtra comentarios
 class PrePro():
     def filter(self, source):
@@ -41,6 +43,7 @@ class PrePro():
         return source
         
 
+# classe que representa um nó da árvore de sintaxe abstrata
 class Node():
     def __init__(self, value):
         self.value = value
@@ -65,17 +68,20 @@ class Block(Node):
 
 
 
+
 # classe de declaração de variável
 class Assignment(Node):
     def Evaluate(self):
         TabelaSimbolos.set(self.children[0].value, self.children[1].Evaluate())
 
 
+# classe de print
 class Print(Node):
     def Evaluate(self):
         print(self.children[0].Evaluate())
 
 
+# classe de identificador
 class Identifier(Node):
     def Evaluate(self):
         return TabelaSimbolos.get(self.value)
@@ -167,6 +173,7 @@ class Tokenizer():
         elif self.source[self.position] == ";":
             self.next = Token("SEMICOL", ";")
             self.position += 1
+
         elif self.source[self.position].isalpha():       #tokeniza identificador
             identifier = self.source[self.position]
             self.position += 1
@@ -177,12 +184,14 @@ class Tokenizer():
                 self.next = Token("PRINT", identifier)
             else:
                 self.next = Token("IDENTIFIER", identifier)
+
         elif self.source[self.position].isdigit():      #tokeniza número
             number = ""
             while self.position < len(self.source) and self.source[self.position].isdigit():
                 number += self.source[self.position]
                 self.position += 1
             self.next = Token("NUMBER", int(number))
+
         elif self.source[self.position] == " ":         #ignora espaços em branco e chama recursivamente selectNext()
             self.position += 1
             self.selectNext()
@@ -197,6 +206,7 @@ class Parser():
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
 
+    # function que inicia a análise sintática
     def parseExpression(self):
         result = self.parseTerm()
         while self.tokenizer.next.type == "PLUS" or self.tokenizer.next.type == "MINUS":
@@ -212,6 +222,7 @@ class Parser():
             result = node
         return result
 
+    # function que analisa um termo
     def parseTerm(self):
         result = self.parseFactor()
         while self.tokenizer.next.type == "TIMES" or self.tokenizer.next.type == "DIVIDE":
@@ -228,6 +239,7 @@ class Parser():
             result = node
         return result
 
+    # function que analisa um fator
     def parseFactor(self):
         operation = self.tokenizer.next
         if operation.type == "NUMBER":      #se for número, avança pro próximo token e retorna o valor do número
@@ -264,13 +276,14 @@ class Parser():
             sys.exit(1)
 
 
+    # function que analisa um bloco de código
     def parseBlock(self):
-        if self.tokenizer.next.type == "LBRACE":
+        if self.tokenizer.next.type == "LBRACE":        #se for { avança pro próximo token
             self.tokenizer.selectNext()
-            if self.tokenizer.next.type == "RBRACE":
+            if self.tokenizer.next.type == "RBRACE":        
                 return Block("Block")
             lista = []
-            while self.tokenizer.next.type != "RBRACE":
+            while self.tokenizer.next.type != "RBRACE":     #enquanto não encontrar }
                 lista.append(self.parseStatement())
             self.tokenizer.selectNext()
             return Block("Block", lista)
@@ -279,11 +292,13 @@ class Parser():
             sys.exit(1)
 
     
+    # function que analisa uma declaração
     def parseStatement(self):
-        if self.tokenizer.next.type == "SEMICOL":
+        if self.tokenizer.next.type == "SEMICOL":       #se for ; avança pro próximo token
             self.tokenizer.selectNext()
             return NoOp("NoOp")
-        elif self.tokenizer.next.type == "PRINT":
+        
+        elif self.tokenizer.next.type == "PRINT":       #se for print, avança pro próximo token e chama parseExpression()
             self.tokenizer.selectNext()
             if self.tokenizer.next.type != "LPAREN":
                 sys.stderr.write("Error: Expected '('")
@@ -295,7 +310,8 @@ class Parser():
                 sys.stderr.write("Error: Expected ')'")
                 sys.exit(1)
             self.tokenizer.selectNext()
-        elif self.tokenizer.next.type == "IDENTIFIER":
+
+        elif self.tokenizer.next.type == "IDENTIFIER":      #se for identificador, avança pro próximo token e chama parseExpression()
             atual = self.tokenizer.next
             self.tokenizer.selectNext()
             if self.tokenizer.next.type != "ASSIGN":
@@ -306,7 +322,7 @@ class Parser():
             result.children.append(Identifier(atual.value))
             result.children.append(self.parseExpression())
 
-        if self.tokenizer.next.type != "SEMICOL":
+        if self.tokenizer.next.type != "SEMICOL":                   #se não for ; da erro
             sys.stderr.write("Error: Expected ';'")
             sys.exit(1)
         self.tokenizer.selectNext()
@@ -324,7 +340,6 @@ class Parser():
             sys.stderr.write("Error: Unexpected character\n")
             sys.exit(1)
         return result
-
 
 
 
