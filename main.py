@@ -352,4 +352,4 @@ if __name__ == "__main__":
     file = open(sys.argv[1], "r")
     code = file.read()
     file.close()
-    print(main(code))
+    (main(code))
