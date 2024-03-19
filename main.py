@@ -68,7 +68,6 @@ class Block(Node):
 
 
 
-
 # classe de declaração de variável
 class Assignment(Node):
     def Evaluate(self):
@@ -163,12 +162,6 @@ class Tokenizer():
             self.position += 1
         elif self.source[self.position] == "=":
             self.next = Token("ASSIGN", "=")
-            self.position += 1
-        elif self.source[self.position] == "{":
-            self.next = Token("LBRACE", "{")
-            self.position += 1
-        elif self.source[self.position] == "}":
-            self.next = Token("RBRACE", "}")
             self.position += 1
         elif self.source[self.position] == ";":
             self.next = Token("SEMICOL", ";")
@@ -278,19 +271,11 @@ class Parser():
 
     # function que analisa um bloco de código
     def parseBlock(self):
-        if self.tokenizer.next.type == "LBRACE":        #se for { avança pro próximo token
-            self.tokenizer.selectNext()
-            if self.tokenizer.next.type == "RBRACE":        
-                return Block("Block")
-            lista = []
-            while self.tokenizer.next.type != "RBRACE":     #enquanto não encontrar }
-                lista.append(self.parseStatement())
-            self.tokenizer.selectNext()
-            return Block("Block", lista)
-        else:
-            sys.stderr.write("Error: Expected '{'\n")
-            sys.exit(1)
-
+        lista = []
+        while self.tokenizer.next.type != "EOF":
+            lista.append(self.parseStatement())
+        return Block("Block", lista)
+    
     
     # function que analisa uma declaração
     def parseStatement(self):
