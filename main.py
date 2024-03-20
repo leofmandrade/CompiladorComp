@@ -279,18 +279,7 @@ class Parser():
     
     # function que analisa uma declaração
     def parseStatement(self):
-        if self.tokenizer.next.type == "IDENTIFIER":      #se for identificador, avança pro próximo token e chama parseExpression()
-            atual = self.tokenizer.next
-            self.tokenizer.selectNext()
-            if self.tokenizer.next.type != "ASSIGN":
-                sys.stderr.write("Error: Expected '='")
-                sys.exit(1)
-            self.tokenizer.selectNext()
-            result = Assignment("Assignment")
-            result.children.append(Identifier(atual.value))
-            result.children.append(self.parseExpression())
-
-        elif self.tokenizer.next.type == "PRINT":       #se for print, avança pro próximo token e chama parseExpression()
+        if self.tokenizer.next.type == "PRINT":       #se for print, avança pro próximo token e chama parseExpression()
             self.tokenizer.selectNext()
             if self.tokenizer.next.type != "LPAREN":
                 sys.stderr.write("Error: Expected '('")
@@ -303,10 +292,23 @@ class Parser():
                 sys.exit(1)
             self.tokenizer.selectNext()
 
+
+        elif self.tokenizer.next.type == "IDENTIFIER":      #se for identificador, avança pro próximo token e chama parseExpression()
+            atual = self.tokenizer.next
+            self.tokenizer.selectNext()
+            if self.tokenizer.next.type != "ASSIGN":
+                sys.stderr.write("Error: Expected '='")
+                sys.exit(1)
+            self.tokenizer.selectNext()
+            result = Assignment("Assignment")
+            result.children.append(Identifier(atual.value))
+            result.children.append(self.parseExpression())
+
+
         elif self.tokenizer.next.type == "SKIPLINE":    #se for \n, avança pro próximo token
             self.tokenizer.selectNext()
             result = NoOp("NoOp")
-            
+
         else:
             sys.stderr.write("Error: Expected identifier, 'print' or newline")
             sys.exit(1)
