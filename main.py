@@ -38,8 +38,8 @@ class Token():
 # classe que filtra comentarios
 class PrePro():
     def filter(self, source):
-        source = re.sub(r"--.*", "", source)    # tira tudo que vem à direita de "--"
-        source = re.sub(r"\n", "", source)      # tira quebra de linha e substitui por nada
+        # remove comentarios em lua
+        source = re.sub(r'--.*', ' ', source)
         return source
         
 
@@ -163,8 +163,8 @@ class Tokenizer():
         elif self.source[self.position] == "=":
             self.next = Token("ASSIGN", "=")
             self.position += 1
-        elif self.source[self.position] == ";":
-            self.next = Token("SEMICOL", ";")
+        elif self.source[self.position] == "\n":
+            self.next = Token("SKIPLINE", "SKIPLINE")
             self.position += 1
 
         elif self.source[self.position].isalpha():       #tokeniza identificador
@@ -279,10 +279,17 @@ class Parser():
     
     # function que analisa uma declaração
     def parseStatement(self):
-        if self.tokenizer.next.type == "SEMICOL":       #se for ; avança pro próximo token
+        if self.tokenizer.next.type == "IDENTIFIER":      #se for identificador, avança pro próximo token e chama parseExpression()
+            atual = self.tokenizer.next
             self.tokenizer.selectNext()
-            return NoOp("NoOp")
-        
+            if self.tokenizer.next.type != "ASSIGN":
+                sys.stderr.write("Error: Expected '='")
+                sys.exit(1)
+            self.tokenizer.selectNext()
+            result = Assignment("Assignment")
+            result.children.append(Identifier(atual.value))
+            result.children.append(self.parseExpression())
+
         elif self.tokenizer.next.type == "PRINT":       #se for print, avança pro próximo token e chama parseExpression()
             self.tokenizer.selectNext()
             if self.tokenizer.next.type != "LPAREN":
@@ -296,27 +303,29 @@ class Parser():
                 sys.exit(1)
             self.tokenizer.selectNext()
 
-        elif self.tokenizer.next.type == "IDENTIFIER":      #se for identificador, avança pro próximo token e chama parseExpression()
-            atual = self.tokenizer.next
+        elif self.tokenizer.next.type == "SKIPLINE":    #se for \n, avança pro próximo token
             self.tokenizer.selectNext()
-            if self.tokenizer.next.type != "ASSIGN":
-                sys.stderr.write("Error: Expected '='")
-                sys.exit(1)
-            self.tokenizer.selectNext()
-            result = Assignment("Assignment")
-            result.children.append(Identifier(atual.value))
-            result.children.append(self.parseExpression())
-
-        if self.tokenizer.next.type != "SEMICOL":                   #se não for ; da erro
-            sys.stderr.write("Error: Expected ';'")
+            result = NoOp("NoOp")
+            
+        else:
+            sys.stderr.write("Error: Expected identifier, 'print' or newline")
             sys.exit(1)
-        self.tokenizer.selectNext()
         return result
+
 
 
     def run(code):
         code = PrePro().filter(code)
+        # print("Filtered code:", code)
+
         tokenizer = Tokenizer(code, 0)
+        
+        # print("Tokenizer initialized")
+        # print("Tokens:")
+        # while tokenizer.next.type != "EOF":
+        #     print(tokenizer.next.value)
+        #     tokenizer.selectNext()
+
         parser = Parser(tokenizer)
         result = parser.parseBlock()
 
@@ -325,6 +334,8 @@ class Parser():
             sys.stderr.write("Error: Unexpected character\n")
             sys.exit(1)
         return result
+
+
 
 
 
