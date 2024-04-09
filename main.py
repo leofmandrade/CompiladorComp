@@ -1,12 +1,13 @@
 from abc import abstractmethod
 import sys
 import re
+# adicionar while, if, do, then, else, or, and, >, <, ==, read, not e end
 
 # classe que representa a tabela de símbolos
 class SymbolTable():
     def __init__(self):
         self.table = {}
-        self.words = ['print']
+        self.words = ['print', 'if', 'then', 'else', 'while', 'do', 'and', 'or', 'not', 'read', 'end']
 
     def get(self, key):
         try:
@@ -101,7 +102,16 @@ class BinOp(Node):
             return child1 * child2
         elif valor == "/":
             return child1 // child2
-        
+        elif valor == ">":
+            return child1 > child2
+        elif valor == "<":
+            return child1 < child2
+        elif valor == "==":
+            return child1 == child2
+        elif valor == "or":
+            return child1 or child2
+        elif valor == "and":
+            return child1 and child2
 
 # unary operation (positive, negative)
 class UnOp(Node):
@@ -113,7 +123,8 @@ class UnOp(Node):
             return +child
         elif valor == "-":
             return -child
-        
+        elif valor == "not":
+            return not child
         
 # integer value
 class IntVal(Node):
@@ -126,7 +137,27 @@ class NoOp(Node):
     def Evaluate(self):
         pass
 
+# while operation
+class WhileOp(Node):
+    def Evaluate(self):
+        while self.children[0].Evaluate():
+            self.children[1].Evaluate()
 
+
+# if operation
+class IfOp(Node):
+    def Evaluate(self):
+        if self.children[0].Evaluate():
+            self.children[1].Evaluate()
+        else:
+            self.children[2].Evaluate()
+
+# função que le um valor
+class Read(Node):
+    # no sem filhos. sempre vai ler um int
+    def Evaluate(self):
+        return int(input())
+    
 
 # converte uma sequência de caracteres em tokens
 class Tokenizer():
@@ -134,6 +165,7 @@ class Tokenizer():
         self.source = source
         self.position = position
         self.next = self.selectNext()
+
     
     def selectNext(self):
         while self.position < len(self.source) and self.source[self.position] == " ":
@@ -161,12 +193,15 @@ class Tokenizer():
             self.next = Token("DIVIDE", "/")
             self.position += 1
         elif self.source[self.position] == "=":
-            self.next = Token("ASSIGN", "=")
-            self.position += 1
+            if self.source[self.position + 1] == "=":
+                self.next = Token("EQUALS", "==")
+                self.position += 2
+            else:
+                self.next = Token("ASSIGN", "=")
+                self.position += 1
         elif self.source[self.position] == "\n":
             self.next = Token("SKIPLINE", "SKIPLINE")
             self.position += 1
-
         elif self.source[self.position].isalpha():       #tokeniza identificador
             identifier = self.source[self.position]
             self.position += 1
@@ -174,7 +209,7 @@ class Tokenizer():
                 identifier += self.source[self.position]
                 self.position += 1
             if TabelaSimbolos.word(identifier):
-                self.next = Token("PRINT", identifier)
+                self.next = Token(identifier.upper(), identifier)
             else:
                 self.next = Token("IDENTIFIER", identifier)
 
@@ -188,16 +223,177 @@ class Tokenizer():
         elif self.source[self.position] == " ":         #ignora espaços em branco e chama recursivamente selectNext()
             self.position += 1
             self.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
+
+        
+        elif self.source[self.position] == ">":
+            self.next = Token("GT", ">")
+            self.position += 1
+
+        elif self.source[self.position] == "<":
+            self.next = Token("LT", "<")
+            self.position += 1
         else:
             sys.stderr.write(f"Error: Unexpected character '{self.source[self.position]}'\n")
             sys.exit(1)
         return self.next
 
-
 # análise sintática da expressão
 class Parser():
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
+
+    # function que analisa um bloco de código
+    def parseBlock(self):
+        lista = []
+        while self.tokenizer.next.type != "EOF":
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
+            lista.append(self.parseStatement())
+        return Block("Block", lista)
+    
+     # function que analisa uma declaração
+    def parseStatement(self):
+        if self.tokenizer.next.type == "PRINT":       #se for print, avança pro próximo token e chama parseBoolExpression()
+            self.tokenizer.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
+
+            if self.tokenizer.next.type != "LPAREN":
+                sys.stderr.write("Error: Expected '('")
+                sys.exit(1)
+            self.tokenizer.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
+
+            result = Print("Print")
+            result.children.append(self.parseBoolExpression())
+            if self.tokenizer.next.type != "RPAREN":
+                sys.stderr.write("Error: Expected ')'")
+                sys.exit(1)
+            self.tokenizer.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
+
+
+
+        elif self.tokenizer.next.type == "IDENTIFIER":      #se for identificador, avança pro próximo token e chama parseBoolExpression()
+            atual = self.tokenizer.next
+            self.tokenizer.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
+            if self.tokenizer.next.type != "ASSIGN":
+                sys.stderr.write("Error: Expected '='")
+                sys.exit(1)
+            self.tokenizer.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
+            result = Assignment("Assignment")
+            result.children.append(Identifier(atual.value))
+            result.children.append(self.parseBoolExpression())
+
+        elif self.tokenizer.next.type == "WHILE":
+            self.tokenizer.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
+            result = WhileOp("WhileOp")
+            result.children.append(self.parseBoolExpression())
+            if self.tokenizer.next.type != "DO":
+                sys.stderr.write("Error: Expected 'do'")
+                sys.exit(1)
+            self.tokenizer.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
+            if self.tokenizer.next.type != "SKIPLINE":
+                sys.stderr.write("Error: Expected newline")
+                sys.exit(1)
+            self.tokenizer.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
+            result.children.append(self.parseBlock())
+            self.tokenizer.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
+            if self.tokenizer.next.type != "END":
+                sys.stderr.write("Error: Expected 'end'")
+                sys.exit(1)
+            
+
+        elif self.tokenizer.next.type == "IF":
+            self.tokenizer.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
+            result = IfOp("IfOp")
+            result.children.append(self.parseBoolExpression())
+            if self.tokenizer.next.type != "THEN":
+                sys.stderr.write("Error: Expected 'then'")
+                sys.exit(1)
+            self.tokenizer.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
+            if self.tokenizer.next.type != "SKIPLINE":
+                sys.stderr.write("Error: Expected newline")
+                sys.exit(1)
+            self.tokenizer.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
+            result.children.append(self.parseBlock())
+            if self.tokenizer.next.type == "ELSE":
+                self.tokenizer.selectNext()
+                print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
+                if self.tokenizer.next.type != "SKIPLINE":
+                    sys.stderr.write("Error: Expected newline")
+                    sys.exit(1)
+                self.tokenizer.selectNext()
+                print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
+                result.children.append(self.parseBlock())
+            else:
+                result.children.append(NoOp("NoOp"))
+            self.tokenizer.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
+            if self.tokenizer.next.type != "END":
+                sys.stderr.write("Error: Expected 'end'")
+                sys.exit(1)
+                
+        elif self.tokenizer.next.type == "SKIPLINE":    #se for \n, avança pro próximo token
+            self.tokenizer.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
+            result = NoOp("NoOp")
+
+        else:
+            sys.stderr.write("Error: Expected identifier, 'print' or newline")
+            sys.exit(1)
+        return result
+    
+    # function que analisa boolean expression
+    def parseBoolExpression(self):
+        result = self.parseBoolTerm()
+        while self.tokenizer.next.type == "OR":
+            self.tokenizer.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
+            node = BinOp("or")
+            node.children.append(result)
+            node.children.append(self.parseBoolTerm())
+            result = node
+        return result
+    
+    # function que analisa boolean term
+    def parseBoolTerm(self):
+        result = self.parseRelationalExpression()
+        while self.tokenizer.next.type == "AND":
+            self.tokenizer.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
+            node = BinOp("and")
+            node.children.append(result)
+            node.children.append(self.parseRelationalExpression())
+            result = node
+        return result
+    
+    # function que analisa relational expression
+    def parseRelationalExpression(self):
+        result = self.parseExpression()
+        while self.tokenizer.next.type == "GT" or self.tokenizer.next.type == "LT" or self.tokenizer.next.type == "EQUALS":
+            operation = self.tokenizer.next
+            self.tokenizer.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
+            if operation.type == "GT":
+                node = BinOp(">")
+            elif operation.type == "LT":
+                node = BinOp("<")
+            elif operation.type == "EQUALS":
+                node = BinOp("==")
+            node.children.append(result)
+            node.children.append(self.parseExpression())
+            result = node
+        return result
+
 
     # function que inicia a análise sintática
     def parseExpression(self):
@@ -206,6 +402,7 @@ class Parser():
             operation = self.tokenizer.next
 
             self.tokenizer.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
             if operation.type == "PLUS":
                 node = BinOp("+")
             elif operation.type == "MINUS":
@@ -222,6 +419,7 @@ class Parser():
             operation = self.tokenizer.next
 
             self.tokenizer.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
             if operation.type == "TIMES":
                 node = BinOp("*")
                 operation = self.tokenizer.next
@@ -237,82 +435,72 @@ class Parser():
         operation = self.tokenizer.next
         if operation.type == "NUMBER":      #se for número, avança pro próximo token e retorna o valor do número
             self.tokenizer.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
             return IntVal(operation.value)
         
         elif operation.type == "IDENTIFIER":    #se for identificador, avança pro próximo token e retorna o valor do identificador
             self.tokenizer.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
             return Identifier(operation.value)
         
         elif operation.type == "PLUS":      #se for adição, avança pro próximo token e chama parseFactor()
             self.tokenizer.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
             node = UnOp("+")
             node.children.append(self.parseFactor())
             return node
                 
         elif operation.type == "MINUS":     #se for subtração, avança pro próximo token e chama parseFactor()
             self.tokenizer.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
             node = UnOp("-")
             node.children.append(self.parseFactor())
             return node
         
-        elif operation.type == "LPAREN":    #se for ( avança pro próximo token e chama parseExpression()
+        elif operation.type == "NOT":       #se for not, avança pro próximo token e chama parseFactor()
             self.tokenizer.selectNext()
-            result = self.parseExpression()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
+            node = UnOp("not")
+            node.children.append(self.parseFactor())
+            return node
+        
+        elif operation.type == "LPAREN":    #se for ( avança pro próximo token e chama parseBoolExpression()
+            self.tokenizer.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
+            result = self.parseBoolExpression()
             if self.tokenizer.next.type == "RPAREN":    #se for ) avança para o próximo token
                 self.tokenizer.selectNext()
+                print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
                 return result
             else:
                 sys.stderr.write("Error: Expected ')'\n")
                 sys.exit(1)
+
+        elif operation.type == "READ":      #se for read, avanca pro próximo token, ve se tem "(". avanca pro proximo e chama o read. ve se tem ")" no final
+            self.tokenizer.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
+            if self.tokenizer.next.type != "LPAREN":
+                sys.stderr.write("Error: Expected '('")
+                sys.exit(1)
+            self.tokenizer.selectNext()
+            print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
+            result = Read("Read")
+            if self.tokenizer.next.type == "RPAREN":
+                self.tokenizer.selectNext()
+                print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
+                return result
+            else:
+                sys.stderr.write("Error: Expected ')'")
+                sys.exit(1)
+
         else:
             sys.stderr.write("Error: Expected number or '('")
             sys.exit(1)
 
 
-    # function que analisa um bloco de código
-    def parseBlock(self):
-        lista = []
-        while self.tokenizer.next.type != "EOF":
-            lista.append(self.parseStatement())
-        return Block("Block", lista)
+
     
-    
-    # function que analisa uma declaração
-    def parseStatement(self):
-        if self.tokenizer.next.type == "PRINT":       #se for print, avança pro próximo token e chama parseExpression()
-            self.tokenizer.selectNext()
-            if self.tokenizer.next.type != "LPAREN":
-                sys.stderr.write("Error: Expected '('")
-                sys.exit(1)
-            self.tokenizer.selectNext()
-            result = Print("Print")
-            result.children.append(self.parseExpression())
-            if self.tokenizer.next.type != "RPAREN":
-                sys.stderr.write("Error: Expected ')'")
-                sys.exit(1)
-            self.tokenizer.selectNext()
-
-
-        elif self.tokenizer.next.type == "IDENTIFIER":      #se for identificador, avança pro próximo token e chama parseExpression()
-            atual = self.tokenizer.next
-            self.tokenizer.selectNext()
-            if self.tokenizer.next.type != "ASSIGN":
-                sys.stderr.write("Error: Expected '='")
-                sys.exit(1)
-            self.tokenizer.selectNext()
-            result = Assignment("Assignment")
-            result.children.append(Identifier(atual.value))
-            result.children.append(self.parseExpression())
-
-
-        elif self.tokenizer.next.type == "SKIPLINE":    #se for \n, avança pro próximo token
-            self.tokenizer.selectNext()
-            result = NoOp("NoOp")
-
-        else:
-            sys.stderr.write("Error: Expected identifier, 'print' or newline")
-            sys.exit(1)
-        return result
+   
 
 
 
