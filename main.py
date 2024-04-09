@@ -147,10 +147,14 @@ class WhileOp(Node):
 # if operation
 class IfOp(Node):
     def Evaluate(self):
-        if self.children[0].Evaluate():
-            self.children[1].Evaluate()
+        if len(self.children) == 2:
+            if self.children[0].Evaluate():
+                self.children[1].Evaluate()
         else:
-            self.children[2].Evaluate()
+            if self.children[0].Evaluate():
+                self.children[1].Evaluate()
+            else:
+                self.children[2].Evaluate()
 
 # função que le um valor
 class Read(Node):
@@ -220,7 +224,7 @@ class Tokenizer():
                 self.position += 1
             self.next = Token("NUMBER", int(number))
 
-        elif self.source[self.position] == " ":         #ignora espaços em branco e chama recursivamente selectNext()
+        elif self.source[self.position] == " " or self.source[self.position] == "\t":     #ignora espaços e tabs e chama selectNext() novamente
             self.position += 1
             self.selectNext()
 
@@ -303,7 +307,10 @@ class Parser():
                 sys.stderr.write("Error: Expected 'end'")
                 sys.exit(1)
             self.tokenizer.selectNext()
-
+            if self.tokenizer.next.type != "SKIPLINE" and self.tokenizer.next.type != "EOF":
+                sys.stderr.write("Error: Expected newline")
+                sys.exit(1)
+                
 
         elif self.tokenizer.next.type == "IF":          #se for if, avança pro próximo token e chama parseBoolExpression()
             self.tokenizer.selectNext()
@@ -342,14 +349,17 @@ class Parser():
                 sys.stderr.write("Error: Expected 'end'")
                 sys.exit(1)
             self.tokenizer.selectNext()
+            if self.tokenizer.next.type != "SKIPLINE" and self.tokenizer.next.type != "EOF":
+                sys.stderr.write("Error: Expected newline")
+                sys.exit(1)
 
 
         elif self.tokenizer.next.type == "SKIPLINE":    #se for \n, avança pro próximo token
             self.tokenizer.selectNext()
             result = NoOp("NoOp")
 
-        
 
+        
         else:
             sys.stderr.write("Error: Expected identifier, 'print' or newline")
             sys.exit(1)
@@ -484,8 +494,6 @@ class Parser():
         else:
             sys.stderr.write("Error: Expected number or '('")
             sys.exit(1)
-
-
 
     
    
