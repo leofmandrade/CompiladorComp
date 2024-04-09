@@ -1,7 +1,7 @@
 x = 1
 y = 5
-if x < y then
-  print(x)
-end
+while x < 5 do
+  x = x + 1
+  y = y + 1
 
-print(x)
+print(y)

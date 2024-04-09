@@ -304,9 +304,9 @@ class Parser():
             result.children.append(self.parseBlock())
             self.tokenizer.selectNext()
             print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
-            if self.tokenizer.next.type != "END":
-                sys.stderr.write("Error: Expected 'end'")
-                sys.exit(1)
+            # if self.tokenizer.next.type != "END":
+            #     sys.stderr.write("Error: Expected 'end'")
+            #     sys.exit(1)
             
 
         elif self.tokenizer.next.type == "IF":
@@ -338,9 +338,9 @@ class Parser():
                 result.children.append(NoOp("NoOp"))
             self.tokenizer.selectNext()
             print("type: ", self.tokenizer.next.type, "value: ", self.tokenizer.next.value)
-            if self.tokenizer.next.type != "END":
-                sys.stderr.write("Error: Expected 'end'")
-                sys.exit(1)
+            # if self.tokenizer.next.type != "END":
+            #     sys.stderr.write("Error: Expected 'end'")
+            #     sys.exit(1)
                 
         elif self.tokenizer.next.type == "SKIPLINE":    #se for \n, avança pro próximo token
             self.tokenizer.selectNext()
