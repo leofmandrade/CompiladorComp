@@ -7,12 +7,13 @@ import re
 class SymbolTable():
     def __init__(self):
         self.table = {}
-        self.words = ['print', 'if', 'then', 'else', 'while', 'do', 'and', 'or', 'not', 'read', 'end']
+        self.words = ['print', 'if', 'then', 'else', 'while', 'do', 'and', 'or', 'not', 'read', 'end', 'local']
 
     def get(self, key):
         try:
-            return self.table[key]
-        except:
+            value, varType = self.table[key]
+            return (value, varType)
+        except KeyError:
             sys.stderr.write(f"Error: Undefined identifier '{key}'\n")
             sys.exit(1)
     
@@ -21,10 +22,22 @@ class SymbolTable():
             return True
         else:
             return False
-
-
-    def set(self, key, value):
-        self.table[key] = value
+        
+    # declarar variável
+    def create(self, key):
+        if key in self.table:
+            sys.stderr.write(f"Error: Identifier '{key}' already declared\n")
+            sys.exit(1)
+        else:
+            self.table[key] = (None, None)        
+    
+    # seta a variável de modo que tenha uma key e um valor sendo ele uma tupla (valor, tipo)
+    def set(self, key, value, varType):
+        if key not in self.table:
+            sys.stderr.write(f"Error: Undefined identifier '{key}'\n")
+            sys.exit(1)
+        else:
+            self.table[key] = (value, varType)
         
 TabelaSimbolos = SymbolTable()
 
@@ -65,20 +78,24 @@ class Block(Node):
 
     def Evaluate(self):
         for child in self.children:
-            child.Evaluate()
-
+            result = child.Evaluate()
+        return (result, type(result))
 
 
 # classe de declaração de variável
 class Assignment(Node):
     def Evaluate(self):
-        TabelaSimbolos.set(self.children[0].value, self.children[1].Evaluate())
+        assignment = self.children[1].Evaluate()
+        typeIdent = TabelaSimbolos.get(self.children[0].value)[1]
+        TabelaSimbolos.set(self.children[0].value, assignment)
+        return (assignment, typeIdent)
 
 
 # classe de print
 class Print(Node):
     def Evaluate(self):
-        print(self.children[0].Evaluate())
+        printValue = self.children[0].Evaluate()
+        return (printValue, type(printValue))
 
 
 # classe de identificador
@@ -178,6 +195,19 @@ class Tokenizer():
         if self.position == len(self.source):       # se atingir o final da entrada, retorna um token de fim de arquivo (EOF)
             self.next = Token("EOF", "EOF")
 
+        # se tiver ", vai tokenizando string até encontrar outra ". caso não encontre, lança erro
+        elif self.source[self.position] == "\"":
+            string = ""
+            self.position += 1
+            while self.position < len(self.source) and self.source[self.position] != "\"":
+                string += self.source[self.position]
+                self.position += 1
+            if self.position == len(self.source):
+                sys.stderr.write("Error: Expected '\"'\n")
+                sys.exit(1)
+            self.next = Token("STRING", string)
+            self.position += 1
+
         elif self.source[self.position] == "(":
             self.next = Token("LPAREN", "(")
             self.position += 1
@@ -203,6 +233,10 @@ class Tokenizer():
             else:
                 self.next = Token("ASSIGN", "=")
                 self.position += 1
+        elif self.source[self.position] == ".":
+            if self.source[self.position + 1] == ".":
+                self.next = Token("CONCAT", "..")
+                self.position += 2
         elif self.source[self.position] == "\n":
             self.next = Token("SKIPLINE", "SKIPLINE")
             self.position += 1
