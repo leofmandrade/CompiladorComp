@@ -9,7 +9,7 @@
 
 ## EBNF
 
-```
+```ebnf
 BLOCK = { STATEMENT };
 STATEMENT = ( "λ" | ASSIGNMENT | LOCAL | PRINT | WHILE | IF ), "\n" ;
 ASSIGNMENT = IDENTIFIER, "=", EXPRESSION ;
