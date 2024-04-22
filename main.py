@@ -8,36 +8,29 @@ class SymbolTable():
     def __init__(self):
         self.table = {}
         self.words = ['print', 'if', 'then', 'else', 'while', 'do', 'and', 'or', 'not', 'read', 'end', 'local']
-
-    def get(self, key):
-        try:
-            value, varType = self.table[key]
-            return (value, varType)
-        except KeyError:
-            sys.stderr.write(f"Error: Undefined identifier '{key}'\n")
-            sys.exit(1)
     
     def word(self, word):
         if word in self.words:
             return True
         else:
             return False
-        
-    # declarar variável
-    def create(self, key):
-        if key in self.table:
-            sys.stderr.write(f"Error: Identifier '{key}' already declared\n")
-            sys.exit(1)
-        else:
-            self.table[key] = (None, None)        
-    
-    # seta a variável de modo que tenha uma key e um valor sendo ele uma tupla (valor, tipo)
-    def set(self, key, value, varType):
-        if key not in self.table:
+
+    def get(self, key):
+        try:
+            return (self.table[key], type(self.table[key]))
+        except:
             sys.stderr.write(f"Error: Undefined identifier '{key}'\n")
             sys.exit(1)
+        
+    def create(self, key):
+        if key in self.table:
+            sys.stderr.write(f"Error: Identifier '{key}' already defined\n")
+            sys.exit(1)
         else:
-            self.table[key] = (value, varType)
+            self.table[key] = (None, None)
+
+    def set(self, key, value):
+        self.table[key] = (value, type(value))
         
 TabelaSimbolos = SymbolTable()
 
@@ -78,30 +71,27 @@ class Block(Node):
 
     def Evaluate(self):
         for child in self.children:
-            result = child.Evaluate()
-        return (result, type(result))
+            child.Evaluate()
+
+
 
 
 # classe de declaração de variável
 class Assignment(Node):
     def Evaluate(self):
-        assignment = self.children[1].Evaluate()
-        typeIdent = TabelaSimbolos.get(self.children[0].value)[1]
-        TabelaSimbolos.set(self.children[0].value, assignment)
-        return (assignment, typeIdent)
+        TabelaSimbolos.set(self.children[0].value, self.children[1].Evaluate())
 
 
 # classe de print
 class Print(Node):
     def Evaluate(self):
-        printValue = self.children[0].Evaluate()
-        return (printValue, type(printValue))
+        print (self.children[0].Evaluate()[0])
 
 
 # classe de identificador
 class Identifier(Node):
     def Evaluate(self):
-        return TabelaSimbolos.get(self.value)
+        return (TabelaSimbolos.get(self.value), type(TabelaSimbolos.get(self.value)))
     
 
 # binary operation (addition, subtraction, multiplication, division)
@@ -112,23 +102,40 @@ class BinOp(Node):
         child2 = self.children[1].Evaluate()
 
         if valor == "+":
-            return child1 + child2
+            res = child1 + child2
+            return (res, type(res))
         elif valor == "-":
-            return child1 - child2
+            res = child1 - child2
+            return (res, type(res))
         elif valor == "*":
-            return child1 * child2
+            res = child1 * child2
+            return (res, type(res))
         elif valor == "/":
-            return child1 // child2
+            res = child1 // child2
+            return (res, type(res))
         elif valor == ">":
-            return child1 > child2
+            res = child1 > child2
+            return (res, type(res))
         elif valor == "<":
-            return child1 < child2
+            res = child1 < child2
+            return (res, type(res))
         elif valor == "==":
-            return child1 == child2
+            res = child1 == child2
+            return (res, type(res))
         elif valor == "or":
-            return child1 or child2
+            res = child1 or child2
+            return (res, type(res))
         elif valor == "and":
-            return child1 and child2
+            res = child1 and child2
+            return (res, type(res))
+        elif valor == "..":
+            res = str(child1) + str(child2)
+            return (res, type(res))
+
+        
+class StrVal(Node):
+    def Evaluate(self):
+        return (self.value, type(self.value))
 
 # unary operation (positive, negative)
 class UnOp(Node):
@@ -137,17 +144,20 @@ class UnOp(Node):
         child = self.children[0].Evaluate()
 
         if valor == "+":
-            return +child
+            res = +child
+            return (res, type(res))
         elif valor == "-":
-            return -child
+            res = -child
+            return (res, type(res))
         elif valor == "not":
-            return not child
+            res = not child
+            return (res, type(res))
         
 # integer value
 class IntVal(Node):
     def Evaluate(self):
         valor = self.value
-        return int(valor)
+        return (int(valor), type(int(valor)))
     
 # no operation
 class NoOp(Node):
@@ -159,6 +169,15 @@ class WhileOp(Node):
     def Evaluate(self):
         while self.children[0].Evaluate():
             self.children[1].Evaluate()
+
+# var declaration
+class VarDec(Node):
+    # primeiro filho é o identificador, segundo é o valor, caso tenha. se nao tiver o segundo filho, o valor é none
+    def Evaluate(self):
+        if len(self.children) != 2:
+            TabelaSimbolos.create(self.children[0].value)
+        else:
+            TabelaSimbolos.set(self.children[0].value, self.children[1].Evaluate())
 
 
 # if operation
@@ -195,19 +214,6 @@ class Tokenizer():
         if self.position == len(self.source):       # se atingir o final da entrada, retorna um token de fim de arquivo (EOF)
             self.next = Token("EOF", "EOF")
 
-        # se tiver ", vai tokenizando string até encontrar outra ". caso não encontre, lança erro
-        elif self.source[self.position] == "\"":
-            string = ""
-            self.position += 1
-            while self.position < len(self.source) and self.source[self.position] != "\"":
-                string += self.source[self.position]
-                self.position += 1
-            if self.position == len(self.source):
-                sys.stderr.write("Error: Expected '\"'\n")
-                sys.exit(1)
-            self.next = Token("STRING", string)
-            self.position += 1
-
         elif self.source[self.position] == "(":
             self.next = Token("LPAREN", "(")
             self.position += 1
@@ -233,10 +239,6 @@ class Tokenizer():
             else:
                 self.next = Token("ASSIGN", "=")
                 self.position += 1
-        elif self.source[self.position] == ".":
-            if self.source[self.position + 1] == ".":
-                self.next = Token("CONCAT", "..")
-                self.position += 2
         elif self.source[self.position] == "\n":
             self.next = Token("SKIPLINE", "SKIPLINE")
             self.position += 1
@@ -261,7 +263,27 @@ class Tokenizer():
         elif self.source[self.position] == " " or self.source[self.position] == "\t":     #ignora espaços e tabs e chama selectNext() novamente
             self.position += 1
             self.selectNext()
-
+        
+        # adiciona .. (concat) e string (acha " e tem que achar o  " de novo, se não achar, erro)
+        elif self.source[self.position] == ".":
+            if self.source[self.position + 1] == ".":
+                self.next = Token("CONCAT", "..")
+                self.position += 2
+            else:
+                sys.stderr.write(f"Error: Unexpected character '.'\n")
+                sys.exit(1)
+        
+        elif self.source[self.position] == "\"":
+            string = ""
+            self.position += 1
+            while self.position < len(self.source) and self.source[self.position] != "\"":
+                string += self.source[self.position]
+                self.position += 1
+            if self.position == len(self.source):
+                sys.stderr.write(f"Error: Expected '\"'\n")
+                sys.exit(1)
+            self.next = Token("STRING", string)
+            self.position += 1
         
         elif self.source[self.position] == ">":
             self.next = Token("GT", ">")
@@ -304,8 +326,6 @@ class Parser():
                 sys.exit(1)
             self.tokenizer.selectNext()
 
-
-
         elif self.tokenizer.next.type == "IDENTIFIER":      #se for identificador, avança pro próximo token e chama parseBoolExpression()
             atual = self.tokenizer.next
             self.tokenizer.selectNext()
@@ -316,6 +336,19 @@ class Parser():
             result = Assignment("Assignment")
             result.children.append(Identifier(atual.value))
             result.children.append(self.parseBoolExpression())
+            
+        elif self.tokenizer.next.type == "LOCAL":       #se for local, avança pro próximo token e chama parseStatement()
+            self.tokenizer.selectNext()
+            if self.tokenizer.next.type != "IDENTIFIER":
+                sys.stderr.write("Error: Expected identifier")
+                sys.exit(1)
+            result = VarDec("VarDec")
+            result.children.append(Identifier(self.tokenizer.next.value))
+            self.tokenizer.selectNext()
+            if self.tokenizer.next.type == "ASSIGN":
+                self.tokenizer.selectNext()
+                result.children.append(self.parseBoolExpression())
+
 
         elif self.tokenizer.next.type == "WHILE":       #se for while, avança pro próximo token e chama parseBoolExpression()
             self.tokenizer.selectNext()
@@ -442,7 +475,7 @@ class Parser():
     # function que inicia a análise sintática
     def parseExpression(self):
         result = self.parseTerm()
-        while self.tokenizer.next.type == "PLUS" or self.tokenizer.next.type == "MINUS":
+        while self.tokenizer.next.type == "PLUS" or self.tokenizer.next.type == "MINUS" or self.tokenizer.next.type == "CONCAT":
             operation = self.tokenizer.next
 
             self.tokenizer.selectNext()
@@ -450,6 +483,8 @@ class Parser():
                 node = BinOp("+")
             elif operation.type == "MINUS":
                 node = BinOp("-")
+            elif operation.type == "CONCAT":
+                node = BinOp("..")
             node.children.append(result)
             node.children.append(self.parseTerm())
             result = node
@@ -478,6 +513,10 @@ class Parser():
         if operation.type == "NUMBER":      #se for número, avança pro próximo token e retorna o valor do número
             self.tokenizer.selectNext()
             return IntVal(operation.value)
+        
+        elif operation.type == "STRING":    #se for string, avança pro próximo token e retorna o valor da string
+            self.tokenizer.selectNext()
+            return StrVal(operation.value)
         
         elif operation.type == "IDENTIFIER":    #se for identificador, avança pro próximo token e retorna o valor do identificador
             self.tokenizer.selectNext()
