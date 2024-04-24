@@ -30,7 +30,11 @@ class SymbolTable():
             self.table[key] = (None, None)
 
     def set(self, key, value, tipo):
-        self.table[key] = (value, tipo)
+        if key not in self.table:
+            sys.stderr.write(f"Error: Undefined identifier '{key}'\n")
+            sys.exit(1)
+        else:
+            self.table[key] = (value, tipo)
         
 TabelaSimbolos = SymbolTable()
 
@@ -90,7 +94,8 @@ class Print(Node):
         if result is not None:
             print(result[0])  # Make sure result is not None before accessing it
         else:
-            print("Evaluation resulted in None")
+            sys.stderr.write("Error: Undefined identifier\n")
+            sys.exit(1)
 
 
 # classe de identificador
@@ -106,8 +111,14 @@ class BinOp(Node):
         valor = self.value
         child1, type1 = self.children[0].Evaluate()
         child2, type2 = self.children[1].Evaluate()
+        # print ("child1", child1, "type1", type1)
+        # print ("child2", child2, "type2", type2)
 
-        if (type1 == "int" and type2 == "int"):
+        if valor == "..":
+            res = str(child1) + str(child2)
+            return (res, "str")
+        
+        elif type1 == "int" and type2 == "int":
             if valor == "+":
                 res = child1 + child2
             elif valor == "-":
@@ -119,13 +130,19 @@ class BinOp(Node):
             elif valor == "or":
                 res = child1 or child2
             elif valor == "and":
-                res = child1 and child2
+                res = int(child1 and child2)
+            elif valor == ">":
+                res = int(child1 > child2)
+            elif valor == "<":
+                res = int(child1 < child2)
+            elif valor == "==":
+                res = int(child1 == child2)
             else:
-                sys.stderr.write("Error: Unexpected character\n")
+                sys.stderr.write("ASDError: Unexpected character\n")
                 sys.exit(1)
             return (res, "int")
         
-        elif ((type1 == "str" and type2 == "str") or (type1 == "int" and type2 == "int")):
+        elif type1 == "str" and type2 == "str":
             if valor == ">":
                 res = child1 > child2
             elif valor == "<":
@@ -133,19 +150,15 @@ class BinOp(Node):
             elif valor == "==":
                 res = child1 == child2
             else:
-                sys.stderr.write("Error: Unexpected character\n")
+                sys.stderr.write("ASDError: Unexpected character\n")
                 sys.exit(1)
-            if type1 == "str":
-                tipo = "str"
+            if res == True:
+                res = 1
             else:
-                tipo = "int"
-            return (res, tipo)
-        
-        elif valor == "..":
-            res = str(child1) + str(child2)
-            return (res, "str")
+                res = 0
+            return (res, "int")
 
-        
+
 class StrVal(Node):
     def Evaluate(self):
         return (self.value, "str")
@@ -185,7 +198,7 @@ class NoOp(Node):
 class WhileOp(Node):
     def Evaluate(self):
         while self.children[0].Evaluate()[0]:
-            for child in self.children[1]:
+            for child in self.children[1].children:
                 child.Evaluate()
 
 # var declaration
@@ -208,10 +221,10 @@ class IfOp(Node):
     def Evaluate(self):
         condicao = self.children[0].Evaluate()
         if condicao:
-            for child in self.children[1]:
+            for child in self.children[1].children:
                 child.Evaluate()
         else:
-            for child in self.children[2]:
+            for child in self.children[2].children:
                 child.Evaluate()
 
 # função que le um valor
