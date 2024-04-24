@@ -17,7 +17,7 @@ class SymbolTable():
 
     def get(self, key):
         try:
-            return (self.table[key], type(self.table[key]))
+            return self.table[key]
         except:
             sys.stderr.write(f"Error: Undefined identifier '{key}'\n")
             sys.exit(1)
@@ -29,8 +29,8 @@ class SymbolTable():
         else:
             self.table[key] = (None, None)
 
-    def set(self, key, value):
-        self.table[key] = (value, type(value))
+    def set(self, key, value, tipo):
+        self.table[key] = (value, tipo)
         
 TabelaSimbolos = SymbolTable()
 
@@ -79,85 +79,102 @@ class Block(Node):
 # classe de declaração de variável
 class Assignment(Node):
     def Evaluate(self):
-        TabelaSimbolos.set(self.children[0].value, self.children[1].Evaluate())
+        valor = self.children[1].Evaluate()
+        TabelaSimbolos.set(self.children[0].value, valor[0], valor[1])
 
 
 # classe de print
 class Print(Node):
     def Evaluate(self):
-        print (self.children[0].Evaluate()[0])
+        result = self.children[0].Evaluate()
+        if result is not None:
+            print(result[0])  # Make sure result is not None before accessing it
+        else:
+            print("Evaluation resulted in None")
 
 
 # classe de identificador
 class Identifier(Node):
     def Evaluate(self):
-        return (TabelaSimbolos.get(self.value), type(TabelaSimbolos.get(self.value)))
+        # get type and value of the identifier
+        return (TabelaSimbolos.get(self.value))
     
 
 # binary operation (addition, subtraction, multiplication, division)
 class BinOp(Node):
     def Evaluate(self):
         valor = self.value
-        child1 = self.children[0].Evaluate()
-        child2 = self.children[1].Evaluate()
+        child1, type1 = self.children[0].Evaluate()
+        child2, type2 = self.children[1].Evaluate()
 
-        if valor == "+":
-            res = child1 + child2
-            return (res, type(res))
-        elif valor == "-":
-            res = child1 - child2
-            return (res, type(res))
-        elif valor == "*":
-            res = child1 * child2
-            return (res, type(res))
-        elif valor == "/":
-            res = child1 // child2
-            return (res, type(res))
-        elif valor == ">":
-            res = child1 > child2
-            return (res, type(res))
-        elif valor == "<":
-            res = child1 < child2
-            return (res, type(res))
-        elif valor == "==":
-            res = child1 == child2
-            return (res, type(res))
-        elif valor == "or":
-            res = child1 or child2
-            return (res, type(res))
-        elif valor == "and":
-            res = child1 and child2
-            return (res, type(res))
+        if (type1 == "int" and type2 == "int"):
+            if valor == "+":
+                res = child1 + child2
+            elif valor == "-":
+                res = child1 - child2
+            elif valor == "*":
+                res = child1 * child2
+            elif valor == "/":
+                res = child1 // child2
+            elif valor == "or":
+                res = child1 or child2
+            elif valor == "and":
+                res = child1 and child2
+            else:
+                sys.stderr.write("Error: Unexpected character\n")
+                sys.exit(1)
+            return (res, "int")
+        
+        elif ((type1 == "str" and type2 == "str") or (type1 == "int" and type2 == "int")):
+            if valor == ">":
+                res = child1 > child2
+            elif valor == "<":
+                res = child1 < child2
+            elif valor == "==":
+                res = child1 == child2
+            else:
+                sys.stderr.write("Error: Unexpected character\n")
+                sys.exit(1)
+            if type1 == "str":
+                tipo = "str"
+            else:
+                tipo = "int"
+            return (res, tipo)
+        
         elif valor == "..":
             res = str(child1) + str(child2)
-            return (res, type(res))
+            return (res, "str")
 
         
 class StrVal(Node):
     def Evaluate(self):
-        return (self.value, type(self.value))
+        return (self.value, "str")
 
 # unary operation (positive, negative)
 class UnOp(Node):
     def Evaluate(self):
         valor = self.value
-        child = self.children[0].Evaluate()
+        child, tipo = self.children[0].Evaluate()
+
+        if tipo != "int":
+            sys.stderr.write("Error: Expected integer\n")
+            sys.exit(1)
 
         if valor == "+":
             res = +child
-            return (res, type(res))
+            return (res, "int")
         elif valor == "-":
             res = -child
-            return (res, type(res))
+            return (res, "int")
         elif valor == "not":
             res = not child
-            return (res, type(res))
+            return (res, "int")
         
 # integer value
 class IntVal(Node):
     def Evaluate(self):
         valor = self.value
-        return (int(valor), type(int(valor)))
+        return (int(valor), "int")
     
 # no operation
 class NoOp(Node):
@@ -167,36 +184,41 @@ class NoOp(Node):
 # while operation
 class WhileOp(Node):
     def Evaluate(self):
-        while self.children[0].Evaluate():
-            self.children[1].Evaluate()
+        while self.children[0].Evaluate()[0]:
+            for child in self.children[1]:
+                child.Evaluate()
 
 # var declaration
 class VarDec(Node):
     # primeiro filho é o identificador, segundo é o valor, caso tenha. se nao tiver o segundo filho, o valor é none
     def Evaluate(self):
-        if len(self.children) != 2:
-            TabelaSimbolos.create(self.children[0].value)
-        else:
-            TabelaSimbolos.set(self.children[0].value, self.children[1].Evaluate())
+        # print (self.children[0].value)
+        # cria com create. caso tenha valor, seta o valor
+        TabelaSimbolos.create(self.children[0].value)
+        if len(self.children) == 2:
+            valor = self.children[1].Evaluate()
+            # print(valor)
+            TabelaSimbolos.set(self.children[0].value, valor[0], valor[1])
+
+        # print("----------------")
 
 
 # if operation
 class IfOp(Node):
     def Evaluate(self):
-        if len(self.children) == 2:
-            if self.children[0].Evaluate():
-                self.children[1].Evaluate()
+        condicao = self.children[0].Evaluate()
+        if condicao:
+            for child in self.children[1]:
+                child.Evaluate()
         else:
-            if self.children[0].Evaluate():
-                self.children[1].Evaluate()
-            else:
-                self.children[2].Evaluate()
+            for child in self.children[2]:
+                child.Evaluate()
 
 # função que le um valor
 class Read(Node):
     # no sem filhos. sempre vai ler um int
     def Evaluate(self):
-        return int(input())
+        return (int(input()), "int")
     
 
 # converte uma sequência de caracteres em tokens

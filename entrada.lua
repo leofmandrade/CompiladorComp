@@ -1,6 +1,4 @@
 local x
-local y = x or 1
-local z = "x: "
+local y = 2
 x = 1
 print(x+y)
-print(z..y)
