@@ -8,6 +8,7 @@ class SymbolTable():
     def __init__(self):
         self.table = {}
         self.words = ['print', 'if', 'then', 'else', 'while', 'do', 'and', 'or', 'not', 'read', 'end', 'local']
+        self.count = 0
     
     def word(self, word):
         if word in self.words:
@@ -27,7 +28,8 @@ class SymbolTable():
             sys.stderr.write(f"Error: Identifier '{key}' already defined\n")
             sys.exit(1)
         else:
-            self.table[key] = (None, None)
+            self.count += 1
+            self.table[key] = (None, None, 4 * self.count)
 
     def set(self, key, value, tipo):
         if key not in self.table:
@@ -53,6 +55,8 @@ class PrePro():
         source = re.sub(r'--.*', ' ', source)
         return source
         
+
+
 
 # classe que representa um nó da árvore de sintaxe abstrata
 class Node():
@@ -642,4 +646,7 @@ if __name__ == "__main__":
     file = open(sys.argv[1], "r")
     code = file.read()
     file.close()
+    #adicionar o header.asm no começo do saida.asm e o footer.asm no final
+
+    
     (main(code))
