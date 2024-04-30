@@ -3,6 +3,9 @@ import sys
 import re
 # adicionar while, if, do, then, else, or, and, >, <, ==, read, not e end
 
+arquivoSaida = "saida.asm"
+
+
 # classe que representa a tabela de símbolos
 class SymbolTable():
     def __init__(self):
@@ -56,8 +59,6 @@ class PrePro():
         return source
         
 
-
-
 # classe que representa um nó da árvore de sintaxe abstrata
 class Node():
     def __init__(self, value):
@@ -67,6 +68,12 @@ class Node():
     @abstractmethod
     def Evaluate():
         pass
+
+    #metodo write static pra escrever o codigo em assembly
+    @staticmethod
+    def WriteASM():
+        pass
+
 
 # classe que representa um bloco de código
 class Block(Node):
@@ -81,6 +88,25 @@ class Block(Node):
         for child in self.children:
             child.Evaluate()
 
+    def WriteASM(self):
+        print("sectionsadasd .text")
+        for child in self.children:
+            print(child)
+            child.WriteASM()
+
+    
+        
+# integer value
+class IntVal(Node):
+    def Evaluate(self):
+        valor = self.value
+        print(valor)
+        return (int(valor), "int")
+    
+    print("mov eax, ")
+    def WriteASM(self):
+        print("mov eax,sdaasd ")
+
 
 
 
@@ -90,6 +116,7 @@ class Assignment(Node):
         valor = self.children[1].Evaluate()
         TabelaSimbolos.set(self.children[0].value, valor[0], valor[1])
 
+    def WriteASM(self):
 
 # classe de print
 class Print(Node):
@@ -186,16 +213,15 @@ class UnOp(Node):
         elif valor == "not":
             res = not child
             return (res, "int")
+
         
-# integer value
-class IntVal(Node):
-    def Evaluate(self):
-        valor = self.value
-        return (int(valor), "int")
-    
+
 # no operation
 class NoOp(Node):
     def Evaluate(self):
+        pass
+
+    def WriteASM(self):
         pass
 
 # while operation
@@ -217,8 +243,10 @@ class VarDec(Node):
             # print(valor)
             TabelaSimbolos.set(self.children[0].value, valor[0], valor[1])
 
-        # print("----------------")
-
+    # write  vai escrever PUSH DWORD [ebp + 4 * count] da variavel count que foi criada na st
+    def WriteASM(self):
+        with open(arquivoSaida, "w") as file:
+            file.write(f"PUSH DWORD 0 \n")
 
 # if operation
 class IfOp(Node):
@@ -615,7 +643,6 @@ class Parser():
     def run(code):
         code = PrePro().filter(code)
         # print("Filtered code:", code)
-
         tokenizer = Tokenizer(code, 0)
         
         # print("Tokenizer initialized")
@@ -639,7 +666,9 @@ class Parser():
 
 def main(code):
     root_node = Parser.run(code)
-    return root_node.Evaluate()
+    result = root_node.Evaluate()
+    root_node.WriteASM()
+    return result
 
 if __name__ == "__main__":
     # entrada é "main.py [arquivo]" 
@@ -647,6 +676,5 @@ if __name__ == "__main__":
     code = file.read()
     file.close()
     #adicionar o header.asm no começo do saida.asm e o footer.asm no final
-
     
     (main(code))
