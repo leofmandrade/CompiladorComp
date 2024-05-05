@@ -327,12 +327,17 @@ class IfOp(Node):
     def Evaluate(self):
         newId = self.id
         self.children[0].Evaluate()
+        WriteASM.write(f"CMP EAX, False;")
+        WriteASM.write(f"JE ELSE_{newId};")
         # print(f"CMP EAX, False;")
         # print(f"JE ELSE_{newId};")
         self.children[1].Evaluate()
+        WriteASM.write(f"JMP EXITIF_{newId};")
+        WriteASM.write(f"ELSE_{newId}: ;")
         # print(f"JMP EXITIF_{newId};")
         # print(f"ELSE_{newId}: ;")
         self.children[2].Evaluate()
+        WriteASM.write(f"EXITIF_{newId}: ;")
         # print(f"EXITIF_{newId}: ;")
 
 # função que le um valor
@@ -345,6 +350,13 @@ class Read(Node):
         # print(f"ADD ESP, 8;")
         # print(f"MOV EAX, DWORD [scanint];")
         # print(f"MOV [EBP-{TabelaSimbolos.get(self.children[0].value)[2]}], EAX;")
+        WriteASM.write(f"PUSH scanint;")
+        WriteASM.write(f"PUSH formatin;")
+        WriteASM.write(f"CALL scanf;")
+        WriteASM.write(f"ADD ESP, 8;")
+        WriteASM.write(f"MOV EAX, DWORD [scanint];")
+        WriteASM.write(f"MOV [EBP-{TabelaSimbolos.get(self.children[0].value)[2]}], EAX;")
+        
         return (int(input()), int)
     
 
