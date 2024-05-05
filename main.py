@@ -762,7 +762,6 @@ def main(code):
     root_node = Parser.run(code)
     result = root_node.Evaluate()
     WriteASM.dump()
-    return result
 
 if __name__ == "__main__":
     # entrada é "main.py [arquivo]" 
