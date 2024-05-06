@@ -134,7 +134,6 @@ class Block(Node):
 
     def Evaluate(self):
         for child in self.children:
-            # print(child)
             child.Evaluate()
 
 # integer value
@@ -222,10 +221,10 @@ class BinOp(Node):
             # print(f"IDIV EBX;")
             return (child0[0] // child1[0], int)
         elif valor == ">":
-            child0 = self.children[1].Evaluate()
+            child0 = self.children[0].Evaluate()
             # print(f"PUSH EAX;")
             WriteASM.write(f"PUSH EAX;")
-            child1 = self.children[0].Evaluate()
+            child1 = self.children[1].Evaluate()
             WriteASM.write(f"POP EBX;")
             WriteASM.write(f"CMP EAX, EBX;")
             WriteASM.write(f"CALL binop_jg;")
@@ -234,10 +233,10 @@ class BinOp(Node):
             # print(f"CALL binOpGT;")
             return (child0[0] > child1[0], int)
         elif valor == "<":
-            child0 = self.children[1].Evaluate()
+            child0 = self.children[0].Evaluate()
             WriteASM.write(f"PUSH EAX;")
             # print(f"PUSH EAX;")
-            child1 = self.children[0].Evaluate()
+            child1 = self.children[1].Evaluate()
             WriteASM.write(f"POP EBX;")
             WriteASM.write(f"CMP EAX, EBX;")
             WriteASM.write(f"CALL binop_jl;")
@@ -297,23 +296,25 @@ class NoOp(Node):
 class WhileOp(Node):
     def Evaluate(self):
         newId = self.id
-        start = f"LOOP_{newId}"
-        end = f"EXIT_{newId}"
-
-        WriteASM.write(f"{start}: ;")
+        WriteASM.write("LOOP_{0}: ".format(newId))
         self.children[0].Evaluate()
         WriteASM.write(f"CMP EAX, False;")
-        WriteASM.write(f"JE {newId};")
+        WriteASM.write("JE EXIT_{0}".format(newId))
         self.children[1].Evaluate()
-        WriteASM.write(f"JMP {start};")
-        WriteASM.write(f"{end}: ;")
+        WriteASM.write("JMP LOOP_{0}".format(newId))
+        WriteASM.write("EXIT_{0}: ".format(newId))
             
 
 # var declaration
 class VarDec(Node):
     # primeiro filho é o identificador, segundo é o valor, caso tenha. se nao tiver o segundo filho, o valor é none
     def Evaluate(self):
-       [TabelaSimbolos.create(name.value, self.value) for name in self.children]            
+
+        if len(self.children) == 2:
+            TabelaSimbolos.create(self.children[0].value, self.children[1].Evaluate()[1])
+            TabelaSimbolos.set(self.children[0].value, self.children[1].Evaluate())
+        else:
+            TabelaSimbolos.create(self.children[0].value, None)        
 
 # if operation
 class IfOp(Node):
@@ -726,10 +727,6 @@ class Parser():
             sys.stderr.write("Error: Expected number or '('")
             sys.exit(1)
 
-    
-   
-
-
 
     def run(code):
         code = PrePro().filter(code)
@@ -750,8 +747,6 @@ class Parser():
             sys.stderr.write("Error: Unexpected character\n")
             sys.exit(1)
         return result
-
-
 
 
 

@@ -1,8 +1,8 @@
-local x
-local y
-x = 10
-y = x - 5
+local i = 0 
+local j = 1
 
-if x == 10 then
-    print("x is 10")
+while i < 1 do 
+    i = i + 1
 end
+
+print(i)
