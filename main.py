@@ -758,10 +758,13 @@ def main(code):
 if __name__ == "__main__":
     # entrada é "main.py [arquivo]" 
     file = open(sys.argv[1], "r")
-    #printar o input do arquivo recebido
     code = file.read()
-    print (code)
     file.close()
+    #printar o input do arquivo recebido no stderr
+    print (code, file=sys.stderr)
+
+
+
     #adicionar o header.asm no começo do saida.asm e o footer.asm no final
     
     (main(code))
