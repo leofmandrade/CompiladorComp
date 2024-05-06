@@ -233,7 +233,7 @@ class BinOp(Node):
             child1 = self.children[0].Evaluate()
             WriteASM.write(f"POP EBX;")
             WriteASM.write(f"CMP EAX, EBX;")
-            WriteASM.write(f"CALL binOpGT;")
+            WriteASM.write(f"CALL binop_jg;")
             # print(f"POP EBX;")
             # print(f"CMP EAX, EBX;")
             # print(f"CALL binOpGT;")
@@ -245,7 +245,7 @@ class BinOp(Node):
             child1 = self.children[0].Evaluate()
             WriteASM.write(f"POP EBX;")
             WriteASM.write(f"CMP EAX, EBX;")
-            WriteASM.write(f"CALL binOpLT;")
+            WriteASM.write(f"CALL binop_jl;")
 
             # print(f"POP EBX;")
             # print(f"CMP EAX, EBX;")
@@ -258,7 +258,7 @@ class BinOp(Node):
             child1 = self.children[0].Evaluate()
             WriteASM.write(f"POP EBX;")
             WriteASM.write(f"CMP EAX, EBX;")
-            WriteASM.write(f"CALL binOpEQ;")
+            WriteASM.write(f"CALL binop_je;")
             # print(f"POP EBX;")
             # print(f"CMP EAX, EBX;")
             # print(f"CALL binOpEQ;")
@@ -330,7 +330,7 @@ class IfOp(Node):
         WriteASM.write(f"CMP EAX, False;")
         WriteASM.write(f"JE ELSE_{newId};")
         self.children[1].Evaluate()
-        WriteASM.write(f"JMP EXITIF_{newId};")
+        WriteASM.write(f"JMP EXIT_IF_{newId};")
         WriteASM.write(f"ELSE_{newId}: ;")
         # print(f"CMP EAX, False;")
         # print(f"JE ELSE_{newId};")
@@ -338,7 +338,7 @@ class IfOp(Node):
         # print(f"ELSE_{newId}: ;")
         if len (self.children) == 3:
             self.children[2].Evaluate()
-            WriteASM.write(f"EXIT_{newId}: ;")
+            WriteASM.write(f"EXIT_IF_{newId}: ;")
 
 
 
