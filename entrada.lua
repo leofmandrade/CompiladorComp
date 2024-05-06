@@ -1,3 +1,4 @@
 local x
-x = 3
-x = 5
+local y
+x = 10
+y = x - 5

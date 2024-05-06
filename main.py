@@ -11,7 +11,7 @@ class SymbolTable():
     def __init__(self):
         self.table = {}
         self.words = ['print', 'if', 'then', 'else', 'while', 'do', 'and', 'or', 'not', 'read', 'end', 'local']
-        self.count = 0
+        self.count = 4
     
     def word(self, word):
         if word in self.words:
@@ -21,27 +21,73 @@ class SymbolTable():
 
     def get(self, key):
         try:
-            return self.table[key]
+            var = self.table[key]
+            # print (f"MOV EAX, [EBP-{var[2]}];")
+            WriteASM.write(f"MOV EAX, [EBP-{var[2]}];")
+            # print(self.table[key])
+            return var
         except:
             sys.stderr.write(f"Error: Undefined identifier '{key}'\n")
             sys.exit(1)
         
-    def create(self, key):
+    def create(self, key, type):
         if key in self.table:
             sys.stderr.write(f"Error: Identifier '{key}' already defined\n")
             sys.exit(1)
         else:
-            self.count += 1
-            self.table[key] = (None, None, 4 * self.count)
+            # print (f"PUSH DWORD 0;")
+            WriteASM.write(f"PUSH DWORD 0;")
+            self.table[key] = (None, type, self.count)
+            self.count += 4
 
-    def set(self, key, value, tipo):
+            # print(self.table[key], key)
+
+
+    def set(self, key, value):
         if key not in self.table:
             sys.stderr.write(f"Error: Undefined identifier '{key}'\n")
             sys.exit(1)
         else:
-            self.table[key] = (value, tipo)
+            # print(f"MOV [EBP-{self.table[key][2]}], EAX;")
+            WriteASM.write(f"MOV [EBP-{self.table[key][2]}], EAX;")
+            self.table[key] = (value[0], int, self.table[key][2])
+
         
 TabelaSimbolos = SymbolTable()
+
+
+class WriteASM:
+    output_contents = []
+    filename = "saida.asm"
+    header_file = "header.asm"
+    footer_file = "footer.asm"
+
+    @staticmethod
+    def write(line):
+        WriteASM.output_contents.append(line + '\n')
+
+    @staticmethod
+    def set_filename(name):
+        WriteASM.filename = name
+
+    @staticmethod
+    def dump():
+        # Carrega e adiciona o header ao início do arquivo
+        with open(WriteASM.header_file, 'r') as file:
+            header = file.readlines()
+            header.append('\n')  # Adiciona uma linha em branco após o header
+
+        # Carrega e prepara o footer para ser adicionado ao final do arquivo
+        with open(WriteASM.footer_file, 'r') as file:
+            footer = file.readlines()
+            footer.insert(0, '\n')  # Adiciona uma linha em branco antes do footer
+
+        # Escreve o header, o conteúdo principal e o footer no arquivo
+        with open(WriteASM.filename, 'w') as file:
+            file.writelines(header + WriteASM.output_contents + footer)
+        
+        WriteASM.output_contents = []  # Limpa o buffer após escrever no arquivo
+
 
 
 # representa um token com um tipo e um valor
@@ -61,17 +107,19 @@ class PrePro():
 
 # classe que representa um nó da árvore de sintaxe abstrata
 class Node():
+    id = 0
+    def newId():
+        t = Node.id
+        Node.id += 1
+        return t
+    
     def __init__(self, value):
         self.value = value
         self.children = []
+        self.id = Node.newId()
 
     @abstractmethod
     def Evaluate():
-        pass
-
-    #metodo write static pra escrever o codigo em assembly
-    @staticmethod
-    def WriteASM():
         pass
 
 
@@ -86,42 +134,37 @@ class Block(Node):
 
     def Evaluate(self):
         for child in self.children:
+            # print(child)
             child.Evaluate()
 
-    def WriteASM(self):
-        print("sectionsadasd .text")
-        for child in self.children:
-            print(child)
-            child.WriteASM()
-
-    
-        
 # integer value
 class IntVal(Node):
     def Evaluate(self):
         valor = self.value
-        print(valor)
-        return (int(valor), "int")
+        # print (f"MOV EAX, {valor};")
+        WriteASM.write(f"MOV EAX, {valor};")
+        return (int(valor), int)
     
-    print("mov eax, ")
-    def WriteASM(self):
-        print("mov eax,sdaasd ")
-
-
-
 
 # classe de declaração de variável
 class Assignment(Node):
     def Evaluate(self):
-        valor = self.children[1].Evaluate()
-        TabelaSimbolos.set(self.children[0].value, valor[0], valor[1])
+        TabelaSimbolos.set(self.children[0].value, self.children[1].Evaluate())
 
-    def WriteASM(self):
 
 # classe de print
 class Print(Node):
     def Evaluate(self):
         result = self.children[0].Evaluate()
+        # print(f"PUSH EAX;")
+        # print(f"PUSH formatout;")
+        # print(f"CALL printf;")
+        # print(f"ADD ESP, 8;")
+        WriteASM.write(f"PUSH EAX;")
+        WriteASM.write(f"PUSH formatout;")
+        WriteASM.write(f"CALL printf;")
+        WriteASM.write(f"ADD ESP, 8;")
+
         if result is not None:
             print(result[0])  # Make sure result is not None before accessing it
         else:
@@ -134,86 +177,120 @@ class Identifier(Node):
     def Evaluate(self):
         # get type and value of the identifier
         return (TabelaSimbolos.get(self.value))
+
     
 
 # binary operation (addition, subtraction, multiplication, division)
 class BinOp(Node):
     def Evaluate(self):
         valor = self.value
-        child1, type1 = self.children[0].Evaluate()
-        child2, type2 = self.children[1].Evaluate()
-        # print ("child1", child1, "type1", type1)
-        # print ("child2", child2, "type2", type2)
+        if valor == "+":
+            child0 = self.children[1].Evaluate()
+            # print(f"PUSH EAX;")
+            WriteASM.write(f"PUSH EAX;")
+            child1 = self.children[0].Evaluate()
+            WriteASM.write(f"POP EBX;")
+            WriteASM.write(f"ADD EAX, EBX;")
+            WriteASM.write(f"MOV EBX, EAX;")
+            # print(f"POP EBX;")
+            # print(f"ADD EAX, EBX;")
+            # print(f"MOV EBX, EAX;")
+            return (child0[0] + child1[0], int)
+        elif valor == "-":
+            child0 = self.children[1].Evaluate()
+            WriteASM.write(f"PUSH EAX;")
+            # print(f"PUSH EAX;")
+            child1 = self.children[0].Evaluate()
+            WriteASM.write(f"POP EBX;")
+            WriteASM.write(f"SUB EAX, EBX;")
+            # print(f"POP EBX;")
+            # print(f"SUB EAX, EBX;")
+            return (child0[0] - child1[0], int)
+        elif valor == "*":
+            child0 = self.children[1].Evaluate()
+            # print(f"PUSH EAX;")
+            WriteASM.write(f"PUSH EAX;")
+            child1 = self.children[0].Evaluate()
+            # print(f"POP EBX;")
+            # print(f"IMUL EBX;")
+            WriteASM.write(f"POP EBX;")
+            WriteASM.write(f"IMUL EBX;")
+            return (child0[0] * child1[0], int)
+        elif valor == "/":
+            child0 = self.children[1].Evaluate()
+            # print(f"PUSH EAX;")
+            WriteASM.write(f"PUSH EAX;")
+            child1 = self.children[0].Evaluate()
+            WriteASM.write(f"POP EBX;")
+            WriteASM.write(f"IDIV EBX;")
+            # print(f"POP EBX;")
+            # print(f"IDIV EBX;")
+            return (child0[0] // child1[0], int)
+        elif valor == ">":
+            child0 = self.children[1].Evaluate()
+            # print(f"PUSH EAX;")
+            WriteASM.write(f"PUSH EAX;")
+            child1 = self.children[0].Evaluate()
+            WriteASM.write(f"POP EBX;")
+            WriteASM.write(f"CMP EAX, EBX;")
+            WriteASM.write(f"CALL binOpGT;")
+            # print(f"POP EBX;")
+            # print(f"CMP EAX, EBX;")
+            # print(f"CALL binOpGT;")
+            return (child0[0] > child1[0], int)
+        elif valor == "<":
+            child0 = self.children[1].Evaluate()
+            WriteASM.write(f"PUSH EAX;")
+            # print(f"PUSH EAX;")
+            child1 = self.children[0].Evaluate()
+            WriteASM.write(f"POP EBX;")
+            WriteASM.write(f"CMP EAX, EBX;")
+            WriteASM.write(f"CALL binOpLT;")
 
-        if valor == "..":
-            res = str(child1) + str(child2)
-            return (res, "str")
+            # print(f"POP EBX;")
+            # print(f"CMP EAX, EBX;")
+            # print(f"CALL binOpLT;")
+            return (child0[0] < child1[0], int)
+        elif valor == "==":
+            child0 = self.children[1].Evaluate()
+            # print(f"PUSH EAX;")
+            WriteASM.write(f"PUSH EAX;")
+            child1 = self.children[0].Evaluate()
+            WriteASM.write(f"POP EBX;")
+            WriteASM.write(f"CMP EAX, EBX;")
+            WriteASM.write(f"CALL binOpEQ;")
+            # print(f"POP EBX;")
+            # print(f"CMP EAX, EBX;")
+            # print(f"CALL binOpEQ;")
+            return (child0[0] == child1[0], int)
         
-        elif type1 == "int" and type2 == "int":
-            if valor == "+":
-                res = child1 + child2
-            elif valor == "-":
-                res = child1 - child2
-            elif valor == "*":
-                res = child1 * child2
-            elif valor == "/":
-                res = child1 // child2
-            elif valor == "or":
-                res = child1 or child2
-            elif valor == "and":
-                res = int(child1 and child2)
-            elif valor == ">":
-                res = int(child1 > child2)
-            elif valor == "<":
-                res = int(child1 < child2)
-            elif valor == "==":
-                res = int(child1 == child2)
-            else:
-                sys.stderr.write("ASDError: Unexpected character\n")
-                sys.exit(1)
-            return (res, "int")
-        
-        elif type1 == "str" and type2 == "str":
-            if valor == ">":
-                res = child1 > child2
-            elif valor == "<":
-                res = child1 < child2
-            elif valor == "==":
-                res = child1 == child2
-            else:
-                sys.stderr.write("ASDError: Unexpected character\n")
-                sys.exit(1)
-            if res == True:
-                res = 1
-            else:
-                res = 0
-            return (res, "int")
-
-
 class StrVal(Node):
     def Evaluate(self):
-        return (self.value, "str")
+        return (self.value, str)
 
 # unary operation (positive, negative)
 class UnOp(Node):
     def Evaluate(self):
         valor = self.value
-        child, tipo = self.children[0].Evaluate()
-
-        if tipo != "int":
-            sys.stderr.write("Error: Expected integer\n")
-            sys.exit(1)
-
         if valor == "+":
-            res = +child
-            return (res, "int")
+            child = self.children[0].Evaluate()
+            # print(f"MOV EAX, {child[0]};")
+            WriteASM.write(f"MOV EAX, {child[0]};")
+            return (child[0], int)
         elif valor == "-":
-            res = -child
-            return (res, "int")
+            child = self.children[0].Evaluate()
+            WriteASM.write(f"MOV EAX, {child[0]};")
+            WriteASM.write(f"NEG EAX;")
+            # print(f"MOV EAX, {child[0]};")
+            # print(f"NEG EAX;")
+            return (-child[0], int)
         elif valor == "not":
-            res = not child
-            return (res, "int")
-
+            child = self.children[0].Evaluate()
+            WriteASM.write(f"MOV EAX, {child[0]};")
+            WriteASM.write(f"NOT EAX;")
+            # print(f"MOV EAX, {child[0]};")
+            # print(f"NOT EAX;")
+            return (not child[0], int)
         
 
 # no operation
@@ -221,49 +298,54 @@ class NoOp(Node):
     def Evaluate(self):
         pass
 
-    def WriteASM(self):
-        pass
-
 # while operation
 class WhileOp(Node):
     def Evaluate(self):
-        while self.children[0].Evaluate()[0]:
-            for child in self.children[1].children:
-                child.Evaluate()
+        newId = self.id
+        WriteASM.write(f"LOOP_{newId}: ;")
+        # print(f"LOOP_{newId}: ;")
+        self.children[0].Evaluate()
+        WriteASM.write(f"CMP EAX, False;")
+        WriteASM.write(f"JE EXIT_{newId};")
+        # print(f"CMP EAX, False;")
+        # print(f"JE EXIT_{newId};")
+        self.children[1].Evaluate()
+        WriteASM.write(f"JMP LOOP_{newId};")
+        WriteASM.write(f"EXIT_{newId}: ;")
+        # print(f"JMP LOOP_{newId};")
+        # print(f"EXIT_{newId}: ;")
+            
 
 # var declaration
 class VarDec(Node):
     # primeiro filho é o identificador, segundo é o valor, caso tenha. se nao tiver o segundo filho, o valor é none
     def Evaluate(self):
-        # print (self.children[0].value)
-        # cria com create. caso tenha valor, seta o valor
-        TabelaSimbolos.create(self.children[0].value)
-        if len(self.children) == 2:
-            valor = self.children[1].Evaluate()
-            # print(valor)
-            TabelaSimbolos.set(self.children[0].value, valor[0], valor[1])
-
-    # write  vai escrever PUSH DWORD [ebp + 4 * count] da variavel count que foi criada na st
-    def WriteASM(self):
-        with open(arquivoSaida, "w") as file:
-            file.write(f"PUSH DWORD 0 \n")
+       [TabelaSimbolos.create(name.value, self.value) for name in self.children]            
 
 # if operation
 class IfOp(Node):
     def Evaluate(self):
-        condicao = self.children[0].Evaluate()
-        if condicao:
-            for child in self.children[1].children:
-                child.Evaluate()
-        else:
-            for child in self.children[2].children:
-                child.Evaluate()
+        newId = self.id
+        self.children[0].Evaluate()
+        # print(f"CMP EAX, False;")
+        # print(f"JE ELSE_{newId};")
+        self.children[1].Evaluate()
+        # print(f"JMP EXITIF_{newId};")
+        # print(f"ELSE_{newId}: ;")
+        self.children[2].Evaluate()
+        # print(f"EXITIF_{newId}: ;")
 
 # função que le um valor
 class Read(Node):
     # no sem filhos. sempre vai ler um int
     def Evaluate(self):
-        return (int(input()), "int")
+        # print(f"PUSH scanint;")
+        # print(f"PUSH formatin;")
+        # print(f"CALL scanf;")
+        # print(f"ADD ESP, 8;")
+        # print(f"MOV EAX, DWORD [scanint];")
+        # print(f"MOV [EBP-{TabelaSimbolos.get(self.children[0].value)[2]}], EAX;")
+        return (int(input()), int)
     
 
 # converte uma sequência de caracteres em tokens
@@ -667,7 +749,7 @@ class Parser():
 def main(code):
     root_node = Parser.run(code)
     result = root_node.Evaluate()
-    root_node.WriteASM()
+    WriteASM.dump()
     return result
 
 if __name__ == "__main__":
