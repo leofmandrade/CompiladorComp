@@ -65,6 +65,21 @@ MOV EAX, [EBP-4];
 POP EBX;
 SUB EAX, EBX;
 MOV [EBP-8], EAX;
+MOV EAX, 10;
+PUSH EAX;
+MOV EAX, [EBP-4];
+POP EBX;
+CMP EAX, EBX;
+CALL binop_je;
+CMP EAX, False;
+JE ELSE_17;
+PUSH EAX;
+PUSH formatout;
+CALL printf;
+ADD ESP, 8;
+JMP END_IF_17;
+ELSE_17: ;
+END_IF_17: ;
 
 ; interrupcao de saida (default)
 

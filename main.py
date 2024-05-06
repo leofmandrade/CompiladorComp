@@ -165,11 +165,6 @@ class Print(Node):
         WriteASM.write(f"CALL printf;")
         WriteASM.write(f"ADD ESP, 8;")
 
-        if result is not None:
-            print(result[0])  # Make sure result is not None before accessing it
-        else:
-            sys.stderr.write("Error: Undefined identifier\n")
-            sys.exit(1)
 
 
 # classe de identificador
@@ -302,18 +297,16 @@ class NoOp(Node):
 class WhileOp(Node):
     def Evaluate(self):
         newId = self.id
-        WriteASM.write(f"LOOP_{newId}: ;")
-        # print(f"LOOP_{newId}: ;")
+        start = f"LOOP_{newId}"
+        end = f"EXIT_{newId}"
+
+        WriteASM.write(f"{start}: ;")
         self.children[0].Evaluate()
         WriteASM.write(f"CMP EAX, False;")
-        WriteASM.write(f"JE EXIT_{newId};")
-        # print(f"CMP EAX, False;")
-        # print(f"JE EXIT_{newId};")
+        WriteASM.write(f"JE {newId};")
         self.children[1].Evaluate()
-        WriteASM.write(f"JMP LOOP_{newId};")
-        WriteASM.write(f"EXIT_{newId}: ;")
-        # print(f"JMP LOOP_{newId};")
-        # print(f"EXIT_{newId}: ;")
+        WriteASM.write(f"JMP {start};")
+        WriteASM.write(f"{end}: ;")
             
 
 # var declaration
@@ -326,19 +319,19 @@ class VarDec(Node):
 class IfOp(Node):
     def Evaluate(self):
         newId = self.id
+        elseLabel = f"ELSE_{newId}"
+        endLabel = f"END_IF_{newId}"
+
+
         self.children[0].Evaluate()
         WriteASM.write(f"CMP EAX, False;")
-        WriteASM.write(f"JE ELSE_{newId};")
+        WriteASM.write(f"JE {elseLabel};")
         self.children[1].Evaluate()
-        WriteASM.write(f"JMP EXIT_{newId};")
+        WriteASM.write(f"JMP {endLabel};")
         WriteASM.write(f"ELSE_{newId}: ;")
-        # print(f"CMP EAX, False;")
-        # print(f"JE ELSE_{newId};")
-        # print(f"JMP EXIT_{newId};")
-        # print(f"ELSE_{newId}: ;")
         if len (self.children) == 3:
             self.children[2].Evaluate()
-            WriteASM.write(f"EXIT_{newId}: ;")
+        WriteASM.write(f"{endLabel}: ;")
 
 
 
