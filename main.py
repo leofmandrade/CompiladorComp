@@ -290,15 +290,27 @@ class NoOp(Node):
 class WhileOp(Node):
     def Evaluate(self):
         newId = self.id
-        WriteASM.write("LOOP_{0}: ".format(newId))
+        startLabel = f"LOOP_{newId}"
+        exitLabel = f"EXIT_{newId}"
+
+        # Write loop start label
+        WriteASM.write(f"{startLabel}:")
+        
+        # Evaluate the loop condition
         self.children[0].Evaluate()
-        WriteASM.write(f"CMP EAX, False;")
-        WriteASM.write("JE EXIT_{0}".format(newId))
-        while self.children[0].Evaluate()[0]:
-            for child in self.children[1]:
-                child.Evaluate()
-        WriteASM.write("JMP LOOP_{0}".format(newId))
-        WriteASM.write("EXIT_{0}: ".format(newId))
+        # Compare result with False (0 in assembly) to decide whether to exit the loop
+        WriteASM.write("CMP EAX, 0")
+        WriteASM.write(f"JE {exitLabel}")  # Jump to exit label if condition is false
+
+        # Execute the loop block
+        for child in self.children[1].children:
+            child.Evaluate()
+
+        # Jump back to start to re-evaluate the condition
+        WriteASM.write(f"JMP {startLabel}")
+        # Write exit label
+        WriteASM.write(f"{exitLabel}:")
+
             
 
 # var declaration
