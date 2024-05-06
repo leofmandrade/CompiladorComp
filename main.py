@@ -315,22 +315,34 @@ class VarDec(Node):
 # if operation
 class IfOp(Node):
     def Evaluate(self):
-        newId = self.id
-        elseLabel = f"ELSE_{newId}"
-        endLabel = f"END_IF_{newId}"
+        condition, _ = self.children[0].Evaluate()
+        if condition:
+            for child in self.children[1].children:  # Access the children of the block
+                child.Evaluate()
+        elif len(self.children) > 2:
+            for child in self.children[2].children:  # Access the children of the else block if it exists
+                child.Evaluate()
 
+        
+    def codeASM(self):
+        elseLabel = f"ELSE_{Node.newId()}"
+        endLabel = f"END_IF_{Node.newId()}"
 
-        self.children[0].Evaluate()
+        cond = self.children[0].codeASM()
+        WriteASM.write(f"{cond}")
         WriteASM.write(f"CMP EAX, False;")
-        WriteASM.write(f"JE {elseLabel};")
-        self.children[1].Evaluate()
-        WriteASM.write(f"JMP {endLabel};")
-        WriteASM.write(f"ELSE_{newId}: ;")
-        if len (self.children) == 3:
-            self.children[2].Evaluate()
-        WriteASM.write(f"{endLabel}: ;")
+        WriteASM.write(f"JE {elseLabel}")
 
+        ifBlock = '\n'.join([child.codeASM() for child in self.children[1]])
+        WriteASM.write(f"{ifBlock}")
+        WriteASM.write(f"JMP {endLabel}")
 
+        if len(self.children) == 3:
+            WriteASM.write(f"{elseLabel}:")
+            elseBlock = '\n'.join([child.codeASM() for child in self.children[2]])
+            WriteASM.write(f"{elseBlock}")
+        
+        WriteASM.write(f"{endLabel}:")
 
 
 
@@ -338,12 +350,6 @@ class IfOp(Node):
 class Read(Node):
     # no sem filhos. sempre vai ler um int
     def Evaluate(self):
-        # print(f"PUSH scanint;")
-        # print(f"PUSH formatin;")
-        # print(f"CALL scanf;")
-        # print(f"ADD ESP, 8;")
-        # print(f"MOV EAX, DWORD [scanint];")
-        # print(f"MOV [EBP-{TabelaSimbolos.get(self.children[0].value)[2]}], EAX;")
         WriteASM.write(f"PUSH scanint;")
         WriteASM.write(f"PUSH formatin;")
         WriteASM.write(f"CALL scanf;")
