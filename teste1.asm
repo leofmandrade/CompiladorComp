@@ -55,32 +55,65 @@ PUSH EBP ; guarda o base pointer
 MOV EBP, ESP ; estabelece um novo base pointer
 
 ; codigo gerado pelo compilador abaixo
-MOV EAX, 0;
 PUSH DWORD 0;
-MOV EAX, 0;
-MOV [EBP-4], EAX;
-MOV EAX, 1;
 PUSH DWORD 0;
 MOV EAX, 1;
-MOV [EBP-8], EAX;
-LOOP_9: 
-MOV EAX, [EBP-4];
 PUSH EAX;
+MOV EAX, 3;
+POP EBX;
+ADD EAX, EBX;
+MOV [EBP-4], EAX;
+MOV EAX, [EBP-4];
+MOV [EBP-8], EAX;
 MOV EAX, 1;
+PUSH EAX;
+MOV EAX, [EBP-4];
+POP EBX;
+CMP EAX, EBX;
+CALL binop_jg;
+CMP EAX, False;
+JE ELSE_16;
+MOV EAX, 1;
+PUSH EAX;
+MOV EAX, 5;
+POP EBX;
+SUB EAX, EBX;
+MOV [EBP-4], EAX;
+JMP END_IF_16;
+ELSE_16: ;
+END_IF_16: ;
+MOV EAX, 3;
+PUSH EAX;
+MOV EAX, [EBP-4];
+POP EBX;
+CMP EAX, EBX;
+CALL binop_je;
+CMP EAX, False;
+JE ELSE_28;
+JMP END_IF_28;
+ELSE_28: ;
+MOV EAX, 3;
+MOV [EBP-4], EAX;
+END_IF_28: ;
+MOV EAX, 3;
+MOV [EBP-4], EAX;
+LOOP_43: 
+MOV EAX, 5;
+PUSH EAX;
+MOV EAX, [EBP-4];
 POP EBX;
 CMP EAX, EBX;
 CALL binop_jl;
 CMP EAX, False;
-JE EXIT_9
-MOV EAX, 1;
+JE EXIT_43
+MOV EAX, 5;
 PUSH EAX;
 MOV EAX, [EBP-4];
 POP EBX;
-ADD EAX, EBX;
-MOV EBX, EAX;
-MOV [EBP-4], EAX;
-JMP LOOP_9
-EXIT_9: 
+CMP EAX, EBX;
+CALL binop_jl;
+JMP LOOP_43
+EXIT_43: 
 MOV EAX, [EBP-4];
 PUSH EAX;
 PUSH formatout;
