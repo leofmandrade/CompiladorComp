@@ -3,7 +3,7 @@ import sys
 import re
 # adicionar while, if, do, then, else, or, and, >, <, ==, read, not e end
 
-arquivoSaida = "saida.asm"
+arquivoSaida = "teste1.asm"
 
 
 # classe que representa a tabela de símbolos
@@ -58,7 +58,7 @@ TabelaSimbolos = SymbolTable()
 
 class WriteASM:
     output_contents = []
-    filename = "saida.asm"
+    filename = "teste1.asm"
     header_file = "header.asm"
     footer_file = "footer.asm"
 
