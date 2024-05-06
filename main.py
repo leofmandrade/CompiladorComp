@@ -757,7 +757,6 @@ if __name__ == "__main__":
     code = file.read()
     file.close()
     #printar o input do arquivo recebido no stderr
-    print (code, file=sys.stderr)
 
 
 
