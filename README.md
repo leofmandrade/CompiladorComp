@@ -3,7 +3,7 @@
 ![git status](http://3.129.230.99/svg/leofmandrade/CompiladorComp/)
 
 
-![DiagSintatico](DiagSintatico.png)
+![DiagSintatico](Diagrama.png)
 
 
 
